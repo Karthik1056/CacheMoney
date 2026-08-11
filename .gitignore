@@ -9,3 +9,4 @@ public/uploads/
 screenshots/
 playwright/
 *.tsbuildinfo
+.env.vercel
