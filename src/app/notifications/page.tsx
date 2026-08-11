@@ -2,6 +2,8 @@ import { ResponsiveRouteShell } from '@/components/responsive-route-shell';
 import { NotificationsWebPage } from '@/components/web-screens';
 import { getNotifications, getUnreadCount } from '@/app/actions/notifications';
 
+export const dynamic = 'force-dynamic';
+
 export default async function Page() {
   const [notifications, unreadCount] = await Promise.all([
     getNotifications(),
