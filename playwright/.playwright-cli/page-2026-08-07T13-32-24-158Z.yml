@@ -1,0 +1,82 @@
+- generic:
+  - main:
+    - generic:
+      - complementary:
+        - generic:
+          - generic:
+            - generic: EM
+            - generic:
+              - generic: Expense Manager
+              - generic: Entries
+        - navigation:
+          - link:
+            - /url: /overview
+            - generic: Overview
+          - link:
+            - /url: /expenses
+            - generic: Expenses
+          - link:
+            - /url: /entries
+            - generic: Entries
+          - link:
+            - /url: /savings
+            - generic: Savings
+          - link:
+            - /url: /reminders
+            - generic: Reminders
+          - link:
+            - /url: /notifications
+            - generic: Notifications
+          - link:
+            - /url: /settings
+            - generic: Settings
+        - generic:
+          - generic: This Month
+          - generic: $0.00
+          - generic: Total expenses
+      - generic:
+        - generic:
+          - generic:
+            - generic:
+              - generic: Expense Manager
+              - heading [level=1]: Entries
+              - paragraph: A responsive transaction list that reads like a website, not a phone mockup.
+        - generic:
+          - generic:
+            - generic:
+              - generic:
+                - generic:
+                  - generic:
+                    - generic: Latest Entries
+                    - generic: Search and filter all your transactions.
+                - generic:
+                  - generic:
+                    - textbox:
+                      - /placeholder: Search transactions...
+                      - text: Groceries
+                    - button
+                  - button [expanded]:
+                    - generic: Filter
+                - generic:
+                  - generic: Transaction
+                  - generic: Value
+                  - generic: Method
+                - generic: No transactions found matching criteria.
+  - alert
+  - dialog [ref=e85]:
+    - heading "Filter Transactions" [level=2] [ref=e87]
+    - generic [ref=e88]:
+      - generic [ref=e89]:
+        - text: Category
+        - combobox [active] [ref=e90] [cursor=pointer]:
+          - generic: All Categories
+      - generic [ref=e93]:
+        - text: Account
+        - combobox [ref=e94] [cursor=pointer]:
+          - generic: All Accounts
+      - generic [ref=e97]:
+        - text: Status
+        - combobox [ref=e98] [cursor=pointer]:
+          - generic: All Statuses
+      - button "Apply Filters" [ref=e102] [cursor=pointer]
+    - button "Close" [ref=e103] [cursor=pointer]

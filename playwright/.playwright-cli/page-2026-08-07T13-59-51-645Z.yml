@@ -1,0 +1,45 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - complementary [ref=e4]:
+      - generic [ref=e6]:
+        - generic [ref=e7]: EM
+        - generic [ref=e8]:
+          - generic [ref=e9]: Expense Manager
+          - generic [ref=e10]: Reminders
+      - navigation [ref=e11]:
+        - link "Overview" [ref=e12] [cursor=pointer]:
+          - /url: /overview
+        - link "Expenses" [ref=e17] [cursor=pointer]:
+          - /url: /expenses
+        - link "Entries" [ref=e21] [cursor=pointer]:
+          - /url: /entries
+        - link "Savings" [ref=e26] [cursor=pointer]:
+          - /url: /savings
+        - link "Reminders" [ref=e30] [cursor=pointer]:
+          - /url: /reminders
+        - link "Notifications" [ref=e35] [cursor=pointer]:
+          - /url: /notifications
+        - link "Settings" [ref=e40] [cursor=pointer]:
+          - /url: /settings
+      - generic [ref=e45]:
+        - generic [ref=e46]: This Month
+        - generic [ref=e47]: $0.00
+        - generic [ref=e48]: Total expenses
+    - generic [ref=e49]:
+      - generic [ref=e52]:
+        - generic [ref=e53]: Expense Manager
+        - heading "Reminders" [level=1] [ref=e54]
+        - paragraph [ref=e55]: Reminder cards kept in the same theme but reshaped for a website layout.
+      - generic [ref=e58]:
+        - generic [ref=e60]:
+          - generic [ref=e61]: Reminders
+          - generic [ref=e62]: Upcoming bill payments and recurring service charges.
+        - generic [ref=e65]:
+          - generic [ref=e66]:
+            - generic [ref=e67]: "Reminder Date: 07 Aug 2026"
+            - generic [ref=e68]: Netflix Premium
+            - generic [ref=e69]: $19.99 (monthly)
+          - generic [ref=e70]:
+            - button [ref=e72] [cursor=pointer]
+            - generic [ref=e77]: Due on
+            - generic [ref=e78]: 21 Aug 2026

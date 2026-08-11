@@ -1,0 +1,147 @@
+- generic [ref=e1]:
+  - main [ref=e2]:
+    - generic [ref=e3]:
+      - complementary [ref=e4]:
+        - generic [ref=e6]:
+          - generic [ref=e7]: EM
+          - generic [ref=e8]:
+            - generic [ref=e9]: Expense Manager
+            - generic [ref=e10]: Expenses
+        - navigation [ref=e11]:
+          - link "Overview" [ref=e12] [cursor=pointer]:
+            - /url: /overview
+          - link "Expenses" [ref=e17] [cursor=pointer]:
+            - /url: /expenses
+          - link "Entries" [ref=e21] [cursor=pointer]:
+            - /url: /entries
+          - link "Savings" [ref=e26] [cursor=pointer]:
+            - /url: /savings
+          - link "Reminders" [ref=e30] [cursor=pointer]:
+            - /url: /reminders
+          - link "Notifications" [ref=e35] [cursor=pointer]:
+            - /url: /notifications
+          - link "Settings" [ref=e40] [cursor=pointer]:
+            - /url: /settings
+        - generic [ref=e45]:
+          - generic [ref=e46]: This Month
+          - generic [ref=e47]: $0.00
+          - generic [ref=e48]: Total expenses
+      - generic [ref=e49]:
+        - generic [ref=e52]:
+          - generic [ref=e53]: Expense Manager
+          - heading "Expenses" [level=1] [ref=e54]
+          - paragraph [ref=e55]: The same blue-forward theme, transformed into a responsive web dashboard.
+        - generic [ref=e57]:
+          - generic [ref=e58]:
+            - generic [ref=e60]:
+              - generic [ref=e62]:
+                - generic [ref=e63]: Calendar View
+                - generic [ref=e64]: Days with transactions highlighted.
+              - generic [ref=e65]:
+                - generic [ref=e66]:
+                  - button [active] [ref=e67] [cursor=pointer]
+                  - generic [ref=e70]: July - 2026
+                  - button [ref=e71] [cursor=pointer]
+                - grid "July 2026" [ref=e204]:
+                  - rowgroup [ref=e78]:
+                    - row [ref=e79]:
+                      - columnheader [ref=e80]: Su
+                      - columnheader [ref=e81]: Mo
+                      - columnheader [ref=e82]: Tu
+                      - columnheader [ref=e83]: We
+                      - columnheader [ref=e84]: Th
+                      - columnheader [ref=e85]: Fr
+                      - columnheader [ref=e86]: Sa
+                  - rowgroup [ref=e87]:
+                    - row [ref=e205]:
+                      - gridcell [ref=e206]:
+                        - button "Sunday, June 28th, 2026" [ref=e207] [cursor=pointer]: "28"
+                      - gridcell [ref=e208]:
+                        - button "Monday, June 29th, 2026" [ref=e209] [cursor=pointer]: "29"
+                      - gridcell [ref=e210]:
+                        - button "Tuesday, June 30th, 2026" [ref=e211] [cursor=pointer]: "30"
+                      - gridcell [ref=e212]:
+                        - button "Wednesday, July 1st, 2026" [ref=e213] [cursor=pointer]: "1"
+                      - gridcell [ref=e214]:
+                        - button "Thursday, July 2nd, 2026" [ref=e215] [cursor=pointer]: "2"
+                      - gridcell [ref=e216]:
+                        - button "Friday, July 3rd, 2026" [ref=e217] [cursor=pointer]: "3"
+                      - gridcell [ref=e218]:
+                        - button "Saturday, July 4th, 2026" [ref=e219] [cursor=pointer]: "4"
+                    - row [ref=e220]:
+                      - gridcell [ref=e221]:
+                        - button "Sunday, July 5th, 2026" [ref=e222] [cursor=pointer]: "5"
+                      - gridcell [ref=e223]:
+                        - button "Monday, July 6th, 2026" [ref=e224] [cursor=pointer]: "6"
+                      - gridcell [ref=e225]:
+                        - button "Tuesday, July 7th, 2026" [ref=e226] [cursor=pointer]: "7"
+                      - gridcell [ref=e227]:
+                        - button "Wednesday, July 8th, 2026" [ref=e228] [cursor=pointer]: "8"
+                      - gridcell [ref=e229]:
+                        - button "Thursday, July 9th, 2026" [ref=e230] [cursor=pointer]: "9"
+                      - gridcell [ref=e231]:
+                        - button "Friday, July 10th, 2026" [ref=e232] [cursor=pointer]: "10"
+                      - gridcell [ref=e233]:
+                        - button "Saturday, July 11th, 2026" [ref=e234] [cursor=pointer]: "11"
+                    - row [ref=e235]:
+                      - gridcell [ref=e236]:
+                        - button "Sunday, July 12th, 2026" [ref=e237] [cursor=pointer]: "12"
+                      - gridcell [ref=e238]:
+                        - button "Monday, July 13th, 2026" [ref=e239] [cursor=pointer]: "13"
+                      - gridcell [ref=e240]:
+                        - button "Tuesday, July 14th, 2026" [ref=e241] [cursor=pointer]: "14"
+                      - gridcell [ref=e242]:
+                        - button "Wednesday, July 15th, 2026" [ref=e243] [cursor=pointer]: "15"
+                      - gridcell [ref=e244]:
+                        - button "Thursday, July 16th, 2026" [ref=e245] [cursor=pointer]: "16"
+                      - gridcell [ref=e246]:
+                        - button "Friday, July 17th, 2026" [ref=e247] [cursor=pointer]: "17"
+                      - gridcell [ref=e248]:
+                        - button "Saturday, July 18th, 2026" [ref=e249] [cursor=pointer]: "18"
+                    - row [ref=e250]:
+                      - gridcell [ref=e251]:
+                        - button "Sunday, July 19th, 2026" [ref=e252] [cursor=pointer]: "19"
+                      - gridcell [ref=e253]:
+                        - button "Monday, July 20th, 2026" [ref=e254] [cursor=pointer]: "20"
+                      - gridcell [ref=e255]:
+                        - button "Tuesday, July 21st, 2026" [ref=e256] [cursor=pointer]: "21"
+                      - gridcell [ref=e257]:
+                        - button "Wednesday, July 22nd, 2026" [ref=e258] [cursor=pointer]: "22"
+                      - gridcell [ref=e259]:
+                        - button "Thursday, July 23rd, 2026" [ref=e260] [cursor=pointer]: "23"
+                      - gridcell [ref=e261]:
+                        - button "Friday, July 24th, 2026" [ref=e262] [cursor=pointer]: "24"
+                      - gridcell [ref=e263]:
+                        - button "Saturday, July 25th, 2026" [ref=e264] [cursor=pointer]: "25"
+                    - row [ref=e88]:
+                      - gridcell [ref=e265]:
+                        - button "Sunday, July 26th, 2026" [ref=e266] [cursor=pointer]: "26"
+                      - gridcell [ref=e267]:
+                        - button "Monday, July 27th, 2026" [ref=e268] [cursor=pointer]: "27"
+                      - gridcell [ref=e269]:
+                        - button "Tuesday, July 28th, 2026" [ref=e270] [cursor=pointer]: "28"
+                      - gridcell [ref=e271]:
+                        - button "Wednesday, July 29th, 2026" [ref=e272] [cursor=pointer]: "29"
+                      - gridcell [ref=e273]:
+                        - button "Thursday, July 30th, 2026" [ref=e274] [cursor=pointer]: "30"
+                      - gridcell [ref=e275]:
+                        - button "Friday, July 31st, 2026" [ref=e276] [cursor=pointer]: "31"
+                      - gridcell [ref=e277]:
+                        - button "Saturday, August 1st, 2026" [ref=e278] [cursor=pointer]: "1"
+            - generic [ref=e179]:
+              - generic [ref=e180]:
+                - generic [ref=e181]:
+                  - generic [ref=e182]: Spend total
+                  - generic [ref=e183]: Your total spending vs allocated budget.
+                - generic [ref=e184]: 0% used
+              - generic [ref=e185]: $0
+              - paragraph [ref=e190]: You have spent total0% of your budget
+          - generic [ref=e192]:
+            - generic [ref=e194]:
+              - generic [ref=e195]: Total Expenses
+              - generic [ref=e196]: Switch between spends list and category breakdown.
+            - tablist [ref=e199]:
+              - tab "Spends" [selected] [ref=e200] [cursor=pointer]
+              - tab "Categories" [ref=e201] [cursor=pointer]
+            - generic [ref=e202]: No expenses logged for this period.
+  - alert [ref=e279]
