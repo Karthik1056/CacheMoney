@@ -75,7 +75,12 @@ export async function getNotifications() {
       }
     }
 
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
     const notifications = await prisma.notification.findMany({
+      where: {
+        createdAt: { gte: sevenDaysAgo },
+      },
       orderBy: { createdAt: 'desc' },
       take: 25,
     });
@@ -98,7 +103,15 @@ export async function getNotifications() {
 export async function getUnreadCount() {
   try {
     await getNotifications();
-    return await prisma.notification.count({ where: { read: false } });
+    const now = new Date();
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+
+    return await prisma.notification.count({
+      where: {
+        read: false,
+        createdAt: { gte: sevenDaysAgo },
+      },
+    });
   } catch (error) {
     console.error('Failed to fetch unread count:', error);
     return 0;
