@@ -1,10 +1,18 @@
-import type { Metadata } from 'next';
+import type { Metadata, Viewport } from 'next';
 import './globals.css';
 import { ReactQueryProvider } from '@/components/providers/react-query-provider';
 
 export const metadata: Metadata = {
   title: 'Expense Manager UI Kit',
   description: 'Static mobile UI screens reconstructed from the Expense Manager Figma screenshots.',
+};
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  interactiveWidget: 'resizes-content',
 };
 
 export default function RootLayout({

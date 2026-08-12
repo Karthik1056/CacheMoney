@@ -25,26 +25,45 @@ export async function getExpensesData(month?: string, selectedDateStr?: string) 
       }),
       prisma.budget.findMany({
         where: { month: targetMonth },
+        include: { category: true },
       }),
     ]);
 
     // 2. Dates with transactions (for calendar dot markers)
     const transactionDates = [
-      ...new Set(transactions.map((tx) => tx.date.toISOString().split('T')[0])),
+      ...new Set(
+        transactions.map((tx) => {
+          const d = new Date(tx.date);
+          return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        })
+      ),
     ];
 
     // 3. Filtered transactions for selected date if provided
     let dayTransactions = transactions;
     if (selectedDateStr) {
-      dayTransactions = transactions.filter(
-        (tx) => tx.date.toISOString().split('T')[0] === selectedDateStr
-      );
+      dayTransactions = transactions.filter((tx) => {
+        const d = new Date(tx.date);
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        return dateStr === selectedDateStr;
+      });
     }
 
     // 4. Spent vs Budget Cap (scoped to selected date if selected, else full month)
     const targetTransactions = selectedDateStr ? dayTransactions : transactions;
     const totalSpent = targetTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
-    const totalBudget = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
+    
+    // Overall Expense Budget takes priority; if not set, sum non-income category budgets
+    const overallBudgetRec = budgets.find((b) => b.category?.name === 'Overall Expense Budget');
+    let totalBudget = 0;
+    if (overallBudgetRec) {
+      totalBudget = Number(overallBudgetRec.amount);
+    } else {
+      totalBudget = budgets
+        .filter((b) => !b.category?.isIncome && b.category?.name !== 'Overall Salary')
+        .reduce((sum, b) => sum + Number(b.amount), 0);
+    }
+
     const spentPercentage = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
     // 5. Per-category breakdown for gauge chart (scoped to selected date if selected, else full month)

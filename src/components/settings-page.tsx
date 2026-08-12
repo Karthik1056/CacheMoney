@@ -48,8 +48,6 @@ import { getIcon, AVAILABLE_ICONS } from '@/lib/icon-map';
 import { cn } from '@/lib/utils';
 import type { AccountType } from '@prisma/client';
 
-import { SettingsReportsSection } from '@/components/settings-reports';
-
 export function SettingsWebPage({
   accounts,
   categories,
@@ -80,7 +78,7 @@ export function SettingsWebPage({
     priority: number;
   }>;
 }) {
-  const [activeTab, setActiveTab] = useState('reports');
+  const [activeTab, setActiveTab] = useState('accounts');
 
   // Modal states
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -95,10 +93,7 @@ export function SettingsWebPage({
       <Card className="border-white/10 bg-[#111a25]/95 shadow-xl">
         <CardContent className="p-4 sm:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-4 bg-[#16212d]">
-              <TabsTrigger value="reports" className="data-[state=active]:bg-[#2f56ff] data-[state=active]:text-white">
-                Reports
-              </TabsTrigger>
+            <TabsList className="grid w-full grid-cols-3 bg-[#16212d]">
               <TabsTrigger value="accounts" className="data-[state=active]:bg-[#2f56ff] data-[state=active]:text-white">
                 Accounts
               </TabsTrigger>
@@ -109,11 +104,6 @@ export function SettingsWebPage({
                 Rules
               </TabsTrigger>
             </TabsList>
-
-            {/* REPORTS TAB */}
-            <TabsContent value="reports" className="mt-6 space-y-4">
-              <SettingsReportsSection accounts={accounts} categories={categories} />
-            </TabsContent>
 
             {/* ACCOUNTS TAB */}
             <TabsContent value="accounts" className="mt-6 space-y-4">
