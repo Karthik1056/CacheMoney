@@ -363,63 +363,63 @@ function GaugeCard({
         </CardDescription>
       </CardHeader>
       <CardContent className="px-4 pb-5 pt-1">
-        <div className="flex flex-col sm:flex-row items-center gap-6">
-          {/* Donut chart */}
-          <div className="shrink-0 relative h-[190px] w-[190px]">
-            <svg viewBox="0 0 190 190" className="h-full w-full -rotate-90">
-              {/* Background ring renders first (behind) */}
-              <circle cx="95" cy="95" r={76} fill="transparent" stroke="rgba(255,255,255,0.06)" strokeWidth={20} />
+        <div className="flex flex-col sm:flex-row items-center gap-5 sm:gap-6">
+          {/* Compact Donut chart */}
+          <div className="shrink-0 relative h-[140px] w-[140px] sm:h-[150px] sm:w-[150px] my-1">
+            <svg viewBox="0 0 150 150" className="h-full w-full -rotate-90">
+              {/* Background ring */}
+              <circle cx="75" cy="75" r={58} fill="transparent" stroke="rgba(255,255,255,0.06)" strokeWidth={16} />
               {(() => {
                 let offset = 0;
-                const r = 76;
+                const r = 58;
                 const circ = 2 * Math.PI * r;
                 return breakdown.map((item) => {
                   const dash = (item.percentage / 100) * circ;
                   const el = (
                     <circle
                       key={item.name}
-                      cx="95" cy="95" r={r}
+                      cx="75" cy="75" r={r}
                       fill="transparent"
                       stroke={item.color || '#64748b'}
-                      strokeWidth={20}
+                      strokeWidth={16}
                       strokeDasharray={`${dash} ${circ}`}
                       strokeDashoffset={-offset}
                       strokeLinecap="butt"
                     />
                   );
-                  offset += dash + 3;
+                  offset += dash + 2;
                   return el;
                 });
               })()}
             </svg>
             {/* Center label */}
             <div className="absolute inset-0 flex flex-col items-center justify-center">
-              <span className="text-[11px] text-white/50 font-medium">Top</span>
-              <span className="text-[20px] font-bold text-white">{breakdown.length}</span>
-              <span className="text-[11px] text-white/50 font-medium">cats</span>
+              <span className="text-[10px] text-white/50 font-medium">Top</span>
+              <span className="text-[18px] font-bold text-white leading-none">{breakdown.length}</span>
+              <span className="text-[10px] text-white/50 font-medium">cats</span>
             </div>
           </div>
 
-          {/* Legend list */}
-          <div className="flex-1 space-y-3 w-full">
+          {/* Scrollable Legend list */}
+          <div className="flex-1 space-y-2.5 w-full max-h-[240px] overflow-y-auto pr-1 scrollbar-thin">
             {breakdown.map((item) => {
               const amtStr = item.total != null
                 ? `₹${item.total.toLocaleString('en-IN')}`
                 : '';
               const pct = item.percentage;
               return (
-                <div key={item.name}>
-                  <div className="flex items-center justify-between mb-1.5">
-                    <div className="flex items-center gap-2">
+                <div key={item.name} className="rounded-xl border border-white/5 bg-white/[0.02] p-2 sm:p-2.5">
+                  <div className="flex items-center justify-between mb-1">
+                    <div className="flex items-center gap-2 min-w-0">
                       <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-                      <span className="text-[13px] font-medium text-white/85 truncate max-w-[110px]">{item.name}</span>
+                      <span className="text-[12px] font-semibold text-white/90 truncate max-w-[120px] sm:max-w-[140px]">{item.name}</span>
                     </div>
-                    <div className="flex items-center gap-3">
-                      {amtStr && <span className="text-[12px] text-white/55">{amtStr}</span>}
-                      <span className="text-[13px] font-bold text-white">{pct}%</span>
+                    <div className="flex items-center gap-2 shrink-0">
+                      {amtStr && <span className="text-[11px] text-white/55 font-medium">{amtStr}</span>}
+                      <span className="text-[12px] font-bold text-[#2f56ff]">{pct}%</span>
                     </div>
                   </div>
-                  <div className="h-1.5 rounded-full bg-white/8 overflow-hidden">
+                  <div className="h-1.5 rounded-full bg-white/10 overflow-hidden">
                     <div
                       className="h-full rounded-full transition-all"
                       style={{ width: `${pct}%`, backgroundColor: item.color }}
