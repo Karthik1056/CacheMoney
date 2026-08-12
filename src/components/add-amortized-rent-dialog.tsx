@@ -21,6 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
+import { DatePicker } from '@/components/ui/date-picker';
 import { createAmortizedExpenseSchedule } from '@/app/actions/amortized-expenses';
 
 interface AccountOption {
@@ -44,13 +45,9 @@ export function AddAmortizedRentDialog({
   const [open, setOpen] = useState(false);
   const [title, setTitle] = useState('Room Rent / PG Fee');
   const [totalAmount, setTotalAmount] = useState('6800');
-
-  const now = new Date();
-  const firstDayStr = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
-  const lastDayStr = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().slice(0, 10);
-
-  const [startDate, setStartDate] = useState(firstDayStr);
-  const [endDate, setEndDate] = useState(lastDayStr);
+  
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
   const [fromAccountId, setFromAccountId] = useState(accounts[0]?.id || '');
   const [categoryId, setCategoryId] = useState(categories.find(c => c.name.toLowerCase().includes('rent'))?.id || categories[0]?.id || '');
 
@@ -59,17 +56,26 @@ export function AddAmortizedRentDialog({
   const [serverError, setServerError] = useState('');
 
   // Live calculation of daily rate
-  const start = new Date(startDate);
-  const end = new Date(endDate);
-  const diffTime = Math.abs(end.getTime() - start.getTime());
-  const daysCount = Math.max(Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1, 1);
   const numTotal = Number(totalAmount) || 0;
-  const calculatedDaily = numTotal > 0 ? (numTotal / daysCount).toFixed(2) : '0.00';
+  let daysCount = 0;
+  let calculatedDaily = '0.00';
+  
+  if (startDate && endDate) {
+    const start = new Date(startDate);
+    const end = new Date(endDate);
+    const diffTime = end.getTime() - start.getTime();
+    if (diffTime >= 0) {
+      daysCount = Math.floor(diffTime / (1000 * 60 * 60 * 24)) + 1;
+      if (daysCount > 0 && numTotal > 0) {
+        calculatedDaily = (numTotal / daysCount).toFixed(2);
+      }
+    }
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title || !totalAmount || !fromAccountId) {
-      setServerError('Please fill in Title, Total Amount, and Select Bank Account.');
+    if (!title || !totalAmount || !fromAccountId || !startDate || !endDate) {
+      setServerError('Please fill in all required fields.');
       return;
     }
 
@@ -194,28 +200,12 @@ export function AddAmortizedRentDialog({
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-medium text-white/70">Coverage Start Date *</Label>
-                    <div className="relative">
-                      <CalendarIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-                      <Input
-                        type="date"
-                        value={startDate}
-                        onChange={(e) => setStartDate(e.target.value)}
-                        className="bg-[#16212d] border-white/10 pl-10 text-white [color-scheme:dark] rounded-[16px]"
-                      />
-                    </div>
+                    <DatePicker value={startDate} onChange={setStartDate} />
                   </div>
 
                   <div className="space-y-1.5">
                     <Label className="text-[13px] font-medium text-white/70">Coverage End Date *</Label>
-                    <div className="relative">
-                      <CalendarIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-                      <Input
-                        type="date"
-                        value={endDate}
-                        onChange={(e) => setEndDate(e.target.value)}
-                        className="bg-[#16212d] border-white/10 pl-10 text-white [color-scheme:dark] rounded-[16px]"
-                      />
-                    </div>
+                    <DatePicker value={endDate} onChange={setEndDate} />
                   </div>
                 </div>
 

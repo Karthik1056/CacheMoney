@@ -155,11 +155,8 @@ export function EditTransactionDialog({
 
       if (result.success) {
         setSuccess(true);
-        setTimeout(() => {
-          setOpen(false);
-          setSuccess(false);
-          router.refresh();
-        }, 1000);
+        setOpen(false);
+        router.refresh();
       } else {
         setServerError(result.error || 'Update failed');
       }

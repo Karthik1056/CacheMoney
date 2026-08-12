@@ -11,6 +11,7 @@ import {
   Home,
   ListOrdered,
   MoreHorizontal,
+  PieChart,
   Plus,
   Receipt,
   Settings,
@@ -22,7 +23,7 @@ import {
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { cn } from '@/lib/utils';
 
-export type RouteKey = 'overview' | 'expenses' | 'entries' | 'bills' | 'savings' | 'reminders' | 'notifications' | 'settings';
+export type RouteKey = 'overview' | 'reports' | 'expenses' | 'entries' | 'budget' | 'bills' | 'savings' | 'reminders' | 'notifications' | 'settings';
 
 interface NavItem {
   key: RouteKey;
@@ -33,6 +34,8 @@ interface NavItem {
 
 const allNavItems: NavItem[] = [
   { key: 'overview', href: '/overview', label: 'Overview', Icon: Home },
+  { key: 'budget', href: '/budget', label: 'Monthly Budget', Icon: Wallet2 },
+  { key: 'reports', href: '/reports', label: 'Reports', Icon: PieChart },
   { key: 'expenses', href: '/expenses', label: 'Expenses', Icon: CreditCard },
   { key: 'entries', href: '/entries', label: 'Entries', Icon: ListOrdered },
   { key: 'bills', href: '/bills', label: 'Bills & Utilities', Icon: Receipt },
@@ -42,7 +45,7 @@ const allNavItems: NavItem[] = [
   { key: 'settings', href: '/settings', label: 'Settings', Icon: Settings },
 ];
 
-const secondaryNavKeys = new Set(['bills', 'expenses', 'savings', 'reminders', 'settings']);
+const secondaryNavKeys = new Set(['budget', 'reports', 'bills', 'expenses', 'savings', 'reminders', 'settings']);
 const secondaryNavItems: NavItem[] = allNavItems.filter((item) => secondaryNavKeys.has(item.key));
 
 
@@ -51,6 +54,8 @@ function Avatar() {
     <div className="h-10 w-10 rounded-full border-2 border-[#1d48ff] bg-[radial-gradient(circle_at_34%_30%,#0b0e13_0_18%,#0f1116_19%_35%,#1d48ff_36%_100%)] shadow-[0_0_0_3px_rgba(29,72,255,0.15)]" />
   );
 }
+
+import { ThemeToggle } from '@/components/theme-toggle';
 
 export function ResponsiveRouteShell({
   active,
@@ -76,14 +81,17 @@ export function ResponsiveRouteShell({
         {/* DESKTOP SIDEBAR (≥ 1024px) */}
         <aside className="hidden border-r border-white/10 bg-black/10 px-6 py-7 backdrop-blur lg:flex lg:flex-col">
           <div className="rounded-[28px] border border-white/10 bg-white/5 px-5 py-5">
-            <div className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2f56ff] text-lg font-semibold shadow-[0_8px_20px_rgba(47,86,255,0.35)]">
-                EM
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#2f56ff] text-lg font-semibold shadow-[0_8px_20px_rgba(47,86,255,0.35)]">
+                  EM
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">Expense Manager</div>
+                  <div className="mt-0.5 text-[20px] font-semibold tracking-[-0.02em]">{title}</div>
+                </div>
               </div>
-              <div>
-                <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">Expense Manager</div>
-                <div className="mt-0.5 text-[20px] font-semibold tracking-[-0.02em]">{title}</div>
-              </div>
+              <ThemeToggle />
             </div>
           </div>
 
@@ -117,13 +125,13 @@ export function ResponsiveRouteShell({
 
         {/* MAIN BODY */}
         <div className="flex min-h-screen flex-col">
-          {/* MOBILE TOP BAR (< 640px) - matches OverviewScreen header */}
+          {/* MOBILE TOP BAR (< 640px) */}
           <div className="flex items-center justify-between border-b border-white/10 bg-[#0b1119]/90 px-5 py-3.5 backdrop-blur sm:hidden">
             <div>
               <div className="text-[11px] uppercase tracking-[0.24em] text-white/45">Expense Manager</div>
               <h1 className="text-[20px] font-semibold tracking-[-0.02em] text-white">{title}</h1>
             </div>
-            <Avatar />
+            <ThemeToggle />
           </div>
 
           {/* TABLET / DESKTOP HEADER (≥ 640px) */}
@@ -136,6 +144,7 @@ export function ResponsiveRouteShell({
               </div>
               <div className="flex items-center gap-3">
                 {headerAction && <div>{headerAction}</div>}
+                <ThemeToggle />
               </div>
             </div>
           </header>

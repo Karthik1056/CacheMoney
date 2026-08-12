@@ -41,14 +41,15 @@ export async function getExpensesData(month?: string, selectedDateStr?: string) 
       );
     }
 
-    // 4. Spent vs Budget Cap
-    const totalSpent = transactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
+    // 4. Spent vs Budget Cap (scoped to selected date if selected, else full month)
+    const targetTransactions = selectedDateStr ? dayTransactions : transactions;
+    const totalSpent = targetTransactions.reduce((sum, tx) => sum + Number(tx.amount), 0);
     const totalBudget = budgets.reduce((sum, b) => sum + Number(b.amount), 0);
     const spentPercentage = totalBudget > 0 ? Math.round((totalSpent / totalBudget) * 100) : 0;
 
-    // 5. Per-category breakdown for gauge chart
+    // 5. Per-category breakdown for gauge chart (scoped to selected date if selected, else full month)
     const breakdownMap: Record<string, { name: string; color: string; total: number }> = {};
-    for (const tx of transactions) {
+    for (const tx of targetTransactions) {
       const catName = tx.category?.name || 'Uncategorized';
       const catColor = tx.category?.color || '#64748B';
       if (!breakdownMap[catName]) {
@@ -101,7 +102,7 @@ export async function getExpensesData(month?: string, selectedDateStr?: string) 
   }
 }
 
-export async function getAnalyticsData(year?: number, month?: string) {
+export async function getAnalyticsData(year?: number, month?: string, selectedDateStr?: string) {
   try {
     const currentYear = year || new Date().getFullYear();
     const startOfYear = new Date(currentYear, 0, 1);
@@ -115,10 +116,15 @@ export async function getAnalyticsData(year?: number, month?: string) {
       include: { category: true },
     });
 
+    // If a specific date is selected, scope analytics to that date
+    const targetTransactions = selectedDateStr
+      ? transactions.filter((tx) => tx.date.toISOString().split('T')[0] === selectedDateStr)
+      : transactions;
+
     // 1. Monthly Income vs Expense Bar Chart Data
     const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
     const monthlyOverview = monthNames.map((name, index) => {
-      const monthTxs = transactions.filter((tx) => tx.date.getMonth() === index);
+      const monthTxs = targetTransactions.filter((tx) => tx.date.getMonth() === index);
       const income = monthTxs
         .filter((tx) => tx.category?.isIncome)
         .reduce((sum, tx) => sum + Number(tx.amount), 0);
@@ -130,7 +136,7 @@ export async function getAnalyticsData(year?: number, month?: string) {
 
     // 2. Category Share Pie Chart Data
     const categoryTotals: Record<string, { name: string; value: number; color: string }> = {};
-    for (const tx of transactions) {
+    for (const tx of targetTransactions) {
       if (tx.category?.isIncome) continue; // expenses only for pie chart
       const name = tx.category?.name || 'Uncategorized';
       const color = tx.category?.color || '#64748B';

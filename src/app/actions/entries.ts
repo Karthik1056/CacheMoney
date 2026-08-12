@@ -8,6 +8,7 @@ export async function getEntries(params?: {
   categoryId?: string;
   accountId?: string;
   status?: string;
+  range?: string;
   startDate?: string;
   endDate?: string;
   page?: number;
@@ -19,6 +20,7 @@ export async function getEntries(params?: {
       categoryId,
       accountId,
       status,
+      range,
       startDate,
       endDate,
       page = 1,
@@ -39,10 +41,28 @@ export async function getEntries(params?: {
     if (status) {
       where.status = status as Prisma.EnumTransactionStatusFilter;
     }
-    if (startDate || endDate) {
+
+    const now = new Date();
+    if (range === 'week') {
+      const day = now.getDay();
+      const diffToMonday = now.getDate() - day + (day === 0 ? -6 : 1);
+      const startOfWeek = new Date(now.setDate(diffToMonday));
+      startOfWeek.setHours(0, 0, 0, 0);
+      where.date = { gte: startOfWeek };
+    } else if (range === 'month') {
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0);
+      where.date = { gte: startOfMonth };
+    } else if (range === 'year') {
+      const startOfYear = new Date(now.getFullYear(), 0, 1, 0, 0, 0);
+      where.date = { gte: startOfYear };
+    } else if (startDate || endDate) {
       where.date = {};
       if (startDate) where.date.gte = new Date(startDate);
-      if (endDate) where.date.lte = new Date(endDate);
+      if (endDate) {
+        const eod = new Date(endDate);
+        eod.setHours(23, 59, 59, 999);
+        where.date.lte = eod;
+      }
     }
 
     const [transactions, total] = await Promise.all([

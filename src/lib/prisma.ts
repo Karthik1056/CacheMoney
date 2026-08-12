@@ -9,19 +9,45 @@ const globalForPrisma = globalThis as unknown as {
 
 const connectionString =
   process.env.DATABASE_URL ||
-  'postgresql://postgres:postgres@localhost:5432/expensedb?schema=public';
+  '';
 
-const pool = globalForPrisma.pool ?? new Pool({ connectionString });
-if (process.env.NODE_ENV !== 'production') globalForPrisma.pool = pool;
+const isAccelerate =
+  connectionString.startsWith('prisma://') ||
+  connectionString.startsWith('prisma+postgres://');
 
-const adapter = new PrismaPg(pool);
+let prismaClient: PrismaClient;
 
-export const prisma =
-  globalForPrisma.prisma ??
-  new PrismaClient({
-    adapter,
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-  });
+if (isAccelerate) {
+  prismaClient =
+    globalForPrisma.prisma ??
+    new PrismaClient({
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+} else {
+  const pool =
+    globalForPrisma.pool ??
+    new Pool({
+      connectionString,
+      max: 10,
+      idleTimeoutMillis: 30000,
+      connectionTimeoutMillis: 5000,
+    });
+
+  if (process.env.NODE_ENV !== 'production') globalForPrisma.pool = pool;
+
+  const adapter = new PrismaPg(pool);
+
+  prismaClient =
+    globalForPrisma.prisma ??
+    new PrismaClient({
+      adapter,
+      log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
+    });
+}
+
+export const prisma = prismaClient;
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma;
+
+
 

@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-
 import './globals.css';
+import { ReactQueryProvider } from '@/components/providers/react-query-provider';
 
 export const metadata: Metadata = {
   title: 'Expense Manager UI Kit',
@@ -15,8 +15,9 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body className="min-h-screen overflow-x-hidden bg-[#070b12] font-sans text-slate-100 antialiased selection:bg-primary selection:text-slate-950">
-        {children}
+        <ReactQueryProvider>{children}</ReactQueryProvider>
       </body>
     </html>
   );
 }
+

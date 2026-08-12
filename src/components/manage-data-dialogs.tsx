@@ -10,6 +10,7 @@ import {
   Target,
   Bell,
   Trash2,
+  Edit2,
   Loader2,
   CheckCircle2,
   Wallet,
@@ -22,6 +23,8 @@ import {
 } from 'lucide-react';
 
 import { Button } from '@/components/ui/button';
+import { DatePicker } from '@/components/ui/date-picker';
+import { TimePicker } from '@/components/ui/time-picker';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -50,6 +53,7 @@ import {
 
 import {
   createGoal,
+  updateGoal,
   deleteGoal,
   createSubscription,
   deleteSubscription,
@@ -234,6 +238,84 @@ export function AddGoalDialog() {
   );
 }
 
+export function EditGoalDialog({
+  goal,
+}: {
+  goal: { id: string; title: string; targetAmount: number; status?: string };
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [title, setTitle] = useState(goal.title);
+  const [targetAmount, setTargetAmount] = useState(String(goal.targetAmount));
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !targetAmount) return;
+
+    setSaving(true);
+    await updateGoal({
+      id: goal.id,
+      title: title.trim(),
+      targetAmount: Number(targetAmount),
+    });
+    setSaving(false);
+    setOpen(false);
+    router.refresh();
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        <Button size="icon" variant="ghost" className="h-8 w-8 text-white/60 hover:text-white hover:bg-white/10 rounded-full">
+          <Edit2 size={15} />
+        </Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full sm:max-w-md border-l border-white/10 bg-[#0f1722] p-6 text-white">
+        <SheetHeader className="pb-4 border-b border-white/10">
+          <SheetTitle className="text-xl font-bold text-white flex items-center gap-2">
+            <Edit2 size={18} className="text-[#2f56ff]" /> Edit Savings Goal
+          </SheetTitle>
+        </SheetHeader>
+
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-white/60">Goal Title *</Label>
+            <Input
+              required
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="bg-[#16212d] border-white/10 text-white rounded-[16px]"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-white/60">Target Amount (₹) *</Label>
+            <div className="relative">
+              <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+              <Input
+                required
+                type="number"
+                value={targetAmount}
+                onChange={(e) => setTargetAmount(e.target.value)}
+                className="bg-[#16212d] border-white/10 pl-10 text-white font-semibold rounded-[16px]"
+              />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={saving || !title.trim() || !targetAmount}
+            className="w-full bg-[#2f56ff] hover:bg-[#2548e6] text-white rounded-[16px] py-5 font-semibold shadow-[0_8px_20px_rgba(47,86,255,0.35)] mt-4"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : 'Update Goal'}
+          </Button>
+        </form>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
 export function DeleteGoalButton({ id }: { id: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
@@ -243,7 +325,12 @@ export function DeleteGoalButton({ id }: { id: string }) {
       size="icon"
       className="text-red-400 hover:bg-white/5 hover:text-red-300 h-8 w-8 rounded-full"
       disabled={loading}
-      onClick={async () => { setLoading(true); await deleteGoal(id); router.refresh(); }}
+      onClick={async () => {
+        setLoading(true);
+        await deleteGoal(id);
+        setLoading(false);
+        router.refresh();
+      }}
     >
       {loading ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
     </Button>
@@ -257,6 +344,7 @@ const subscriptionSchema = z.object({
   amount: z.string().optional(),
   cycle: z.enum(['ONE_TIME', 'DAILY', 'WEEKLY', 'MONTHLY', 'QUARTERLY', 'YEARLY']),
   nextBilling: z.string().min(1, 'Reminder date is required'),
+  reminderTime: z.string().optional(),
   notes: z.string().optional(),
 });
 
@@ -276,9 +364,37 @@ export function AddSubscriptionDialog() {
       amount: '',
       cycle: 'ONE_TIME',
       nextBilling: new Date().toISOString().slice(0, 10),
+      reminderTime: '09:00',
       notes: '',
     },
   });
+
+  const watchCycle = form.watch('cycle');
+
+  // Compute next billing date based on cycle default presets
+  const handleCycleChange = (newCycle: string) => {
+    form.setValue('cycle', newCycle as any);
+    const now = new Date();
+
+    if (newCycle === 'DAILY') {
+      form.setValue('nextBilling', now.toISOString().slice(0, 10));
+    } else if (newCycle === 'WEEKLY') {
+      // Find next Monday
+      const day = now.getDay();
+      const diffToMonday = (8 - day) % 7 || 7;
+      const nextMon = new Date(now);
+      nextMon.setDate(now.getDate() + (day === 1 ? 0 : diffToMonday));
+      form.setValue('nextBilling', nextMon.toISOString().slice(0, 10));
+    } else if (newCycle === 'MONTHLY' || newCycle === 'QUARTERLY') {
+      // 1st day of next month
+      const firstDayNextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+      form.setValue('nextBilling', firstDayNextMonth.toISOString().slice(0, 10));
+    } else if (newCycle === 'YEARLY') {
+      // 1st month 1st day (1st Jan next year)
+      const firstJanNextYear = new Date(now.getFullYear() + 1, 0, 1);
+      form.setValue('nextBilling', firstJanNextYear.toISOString().slice(0, 10));
+    }
+  };
 
   const onSubmit = async (values: SubscriptionFormValues) => {
     setServerError('');
@@ -289,7 +405,9 @@ export function AddSubscriptionDialog() {
         amount: values.amount ? Number(values.amount) : 0,
         cycle: values.cycle as any,
         nextBilling: values.nextBilling,
-        notes: values.notes?.trim() || undefined,
+        notes: values.notes?.trim()
+          ? `${values.notes.trim()} (Notify at ${values.reminderTime || '09:00'})`
+          : `Notify at ${values.reminderTime || '09:00'}`,
       });
       if (result.success) {
         setSuccess(true);
@@ -310,7 +428,7 @@ export function AddSubscriptionDialog() {
   return (
     <Sheet open={open} onOpenChange={(v) => { setOpen(v); if (!v) { form.reset(); setSuccess(false); } }}>
       <SheetTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-r from-[#2f56ff] to-[#1e3a8a] hover:from-[#3862ff] hover:to-[#2546b8] text-white shadow-[0_8px_25px_rgba(47,86,255,0.4)] rounded-[16px] transition-all">
+        <Button className="gap-2 bg-[#2f56ff] hover:bg-[#2546b8] text-white shadow-[0_8px_25px_rgba(47,86,255,0.4)] rounded-[16px] transition-all">
           <Plus size={16} /> Add Reminder
         </Button>
       </SheetTrigger>
@@ -373,9 +491,7 @@ export function AddSubscriptionDialog() {
                               </SelectTrigger>
                             </FormControl>
                             <SelectContent className="bg-[#111a25] border-white/10 text-white rounded-[16px]">
-                              <SelectItem value="General">General</SelectItem>
-                              <SelectItem value="Bills">Bills & Utilities</SelectItem>
-                              <SelectItem value="Health">Health & Medical</SelectItem>
+                              <SelectItem value="General">General Task</SelectItem>
                               <SelectItem value="Personal">Personal</SelectItem>
                               <SelectItem value="Work">Work & Projects</SelectItem>
                               <SelectItem value="Subscription">Subscription</SelectItem>
@@ -418,7 +534,10 @@ export function AddSubscriptionDialog() {
                       render={({ field }) => (
                         <FormItem>
                           <FormLabel className="text-[13px] font-medium text-white/70">Repeat Frequency</FormLabel>
-                          <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <Select
+                            onValueChange={(val) => handleCycleChange(val)}
+                            defaultValue={field.value}
+                          >
                             <FormControl>
                               <SelectTrigger className="bg-[#16212d] border-white/10 text-white rounded-[16px]">
                                 <SelectValue />
@@ -426,11 +545,11 @@ export function AddSubscriptionDialog() {
                             </FormControl>
                             <SelectContent className="bg-[#111a25] border-white/10 text-white rounded-[16px]">
                               <SelectItem value="ONE_TIME">One-Time Event</SelectItem>
-                              <SelectItem value="DAILY">Daily</SelectItem>
-                              <SelectItem value="WEEKLY">Weekly</SelectItem>
-                              <SelectItem value="MONTHLY">Monthly</SelectItem>
-                              <SelectItem value="QUARTERLY">Quarterly</SelectItem>
-                              <SelectItem value="YEARLY">Yearly</SelectItem>
+                              <SelectItem value="DAILY">Daily (Everyday)</SelectItem>
+                              <SelectItem value="WEEKLY">Weekly (Mondays)</SelectItem>
+                              <SelectItem value="MONTHLY">Monthly (1st of Month)</SelectItem>
+                              <SelectItem value="QUARTERLY">Quarterly (Every 3 Mo)</SelectItem>
+                              <SelectItem value="YEARLY">Yearly (Jan 1st)</SelectItem>
                             </SelectContent>
                           </Select>
                           <FormMessage />
@@ -438,26 +557,65 @@ export function AddSubscriptionDialog() {
                       )}
                     />
 
-                    <FormField
-                      control={form.control}
-                      name="nextBilling"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel className="text-[13px] font-medium text-white/70">When to Remember *</FormLabel>
-                          <FormControl>
-                            <div className="relative">
-                              <CalendarIcon size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
-                              <Input
-                                type="date"
-                                className="bg-[#16212d] border-white/10 pl-10 text-white [color-scheme:dark] rounded-[16px]"
-                                {...field}
+                    {/* Conditional Date vs Daily Time Selector */}
+                    {watchCycle === 'DAILY' ? (
+                      <FormField
+                        control={form.control}
+                        name="reminderTime"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[13px] font-medium text-white/70">Notification Time (Daily) *</FormLabel>
+                            <FormControl>
+                              <TimePicker
+                                value={field.value}
+                                onChange={field.onChange}
                               />
+                            </FormControl>
+                            <div className="text-[11px] text-emerald-400 pt-1 font-medium">
+                              ⏰ Triggers every day at specified time
                             </div>
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    ) : (
+                      <FormField
+                        control={form.control}
+                        name="nextBilling"
+                        render={({ field }) => (
+                          <FormItem>
+                            <FormLabel className="text-[13px] font-medium text-white/70">
+                              {watchCycle === 'ONE_TIME'
+                                ? 'Target Date *'
+                                : watchCycle === 'WEEKLY'
+                                ? 'Next Due Date (Mondays) *'
+                                : watchCycle === 'MONTHLY'
+                                ? 'Next Due Date (1st of Month) *'
+                                : watchCycle === 'YEARLY'
+                                ? 'Next Due Date (Jan 1st) *'
+                                : 'Next Due Date *'}
+                            </FormLabel>
+                            <FormControl>
+                              <DatePicker
+                                value={field.value}
+                                onChange={field.onChange}
+                                placeholder="Select date"
+                              />
+                            </FormControl>
+                            <div className="text-[11px] text-[#2f56ff] pt-1">
+                              {watchCycle === 'WEEKLY'
+                                ? '🗓️ Preset to upcoming Monday'
+                                : watchCycle === 'MONTHLY'
+                                ? '🗓️ Preset to 1st day of month'
+                                : watchCycle === 'YEARLY'
+                                ? '🗓️ Preset to Jan 1st'
+                                : '🗓️ Target notification date'}
+                            </div>
+                            <FormMessage />
+                          </FormItem>
+                        )}
+                      />
+                    )}
                   </div>
 
                   <FormField
@@ -541,9 +699,11 @@ export function DeleteTransactionButton({ id }: { id: string }) {
 export function BudgetSalaryDialog({
   categories = [],
   currentBudgets = [],
+  trigger,
 }: {
   categories?: Array<{ id: string; name: string; isIncome: boolean }>;
   currentBudgets?: Array<{ id: string; categoryId: string; categoryName: string; amount: number; isIncome: boolean }>;
+  trigger?: React.ReactNode;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState(false);
@@ -640,9 +800,11 @@ export function BudgetSalaryDialog({
   return (
     <Sheet open={open} onOpenChange={setOpen}>
       <SheetTrigger asChild>
-        <Button className="gap-2 bg-gradient-to-r from-[#2f56ff] to-[#1e3a8a] hover:from-[#3862ff] hover:to-[#2546b8] text-white shadow-[0_8px_25px_rgba(47,86,255,0.4)] rounded-[16px] transition-all">
-          <Wallet size={15} /> Set Budget & Salary
-        </Button>
+        {trigger || (
+          <Button className="gap-2 bg-gradient-to-r from-[#2f56ff] to-[#1e3a8a] hover:from-[#3862ff] hover:to-[#2546b8] text-white shadow-[0_8px_25px_rgba(47,86,255,0.4)] rounded-[16px] transition-all">
+            <Wallet size={15} /> Set Budget & Salary
+          </Button>
+        )}
       </SheetTrigger>
 
       <SheetContent
@@ -738,6 +900,124 @@ export function BudgetSalaryDialog({
             </div>
           )}
         </div>
+      </SheetContent>
+    </Sheet>
+  );
+}
+
+export function DeleteBudgetButton({ id }: { id: string }) {
+  const router = useRouter();
+  const [deleting, setDeleting] = useState(false);
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    await deleteBudget(id);
+    setDeleting(false);
+    router.refresh();
+  };
+
+  return (
+    <Button
+      variant="ghost"
+      size="icon"
+      onClick={handleDelete}
+      disabled={deleting}
+      className="h-8 w-8 text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 rounded-xl"
+    >
+      {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={15} />}
+    </Button>
+  );
+}
+
+export function UpsertCategoryBudgetDialog({
+  categories = [],
+  initialData,
+  trigger,
+}: {
+  categories?: Array<{ id: string; name: string }>;
+  initialData?: { categoryId: string; amount: number };
+  trigger?: React.ReactNode;
+}) {
+  const router = useRouter();
+  const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [categoryId, setCategoryId] = useState(initialData?.categoryId || '');
+  const [amount, setAmount] = useState(initialData?.amount ? String(initialData.amount) : '');
+
+  const now = new Date();
+  const currentMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!categoryId || !amount) return;
+
+    setSaving(true);
+    await upsertBudget({
+      month: currentMonthStr,
+      categoryId,
+      amount: Number(amount),
+    });
+    setSaving(false);
+    setOpen(false);
+    router.refresh();
+  };
+
+  return (
+    <Sheet open={open} onOpenChange={setOpen}>
+      <SheetTrigger asChild>
+        {trigger || (
+          <Button variant="outline" className="gap-2 rounded-[16px] border-white/10 bg-[#16212d] text-white hover:bg-white/10">
+            <Plus size={16} /> Category Budget
+          </Button>
+        )}
+      </SheetTrigger>
+      <SheetContent side="right" className="w-full sm:max-w-md border-l border-white/10 bg-[#0f1722] p-6 text-white">
+        <SheetHeader className="pb-4 border-b border-white/10">
+          <SheetTitle className="text-xl font-bold text-white">
+            {initialData ? 'Edit Category Budget' : 'Add Category Budget'}
+          </SheetTitle>
+        </SheetHeader>
+        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-white/60">Category</Label>
+            <Select value={categoryId} onValueChange={setCategoryId} disabled={!!initialData}>
+              <SelectTrigger className="bg-[#16212d] border-white/10 text-white rounded-[16px]">
+                <SelectValue placeholder="Select Category" />
+              </SelectTrigger>
+              <SelectContent className="bg-[#16212d] border-white/10 text-white rounded-[16px]">
+                {categories.map((c) => (
+                  <SelectItem key={c.id} value={c.id}>
+                    {c.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs uppercase tracking-wider text-white/60">Budget Limit (₹)</Label>
+            <div className="relative">
+              <IndianRupee size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-white/40" />
+              <Input
+                type="number"
+                min="0"
+                step="100"
+                placeholder="e.g. 5000"
+                value={amount}
+                onChange={(e) => setAmount(e.target.value)}
+                className="bg-[#16212d] border-white/10 pl-10 text-white font-semibold text-[16px] rounded-[16px]"
+              />
+            </div>
+          </div>
+
+          <Button
+            type="submit"
+            disabled={saving || !categoryId || !amount}
+            className="w-full bg-[#2f56ff] hover:bg-[#2548e6] text-white rounded-[16px] py-6 font-semibold shadow-[0_8px_20px_rgba(47,86,255,0.35)] mt-4"
+          >
+            {saving ? <Loader2 size={16} className="animate-spin" /> : 'Save Category Limit'}
+          </Button>
+        </form>
       </SheetContent>
     </Sheet>
   );

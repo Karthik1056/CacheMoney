@@ -2,7 +2,7 @@
 
 import { prisma } from '@/lib/prisma';
 import { revalidatePath } from 'next/cache';
-import type { BillingCycle } from '@prisma/client';
+import type { BillingCycle, WishlistStatus } from '@prisma/client';
 
 // ─── SAVINGS GOALS (WishlistItem) ───
 export async function createGoal(data: {
@@ -38,6 +38,29 @@ export async function deleteGoal(id: string) {
   } catch (error) {
     console.error('Failed to delete goal:', error);
     return { success: false };
+  }
+}
+
+export async function updateGoal(data: {
+  id: string;
+  title: string;
+  targetAmount: number;
+  status?: string;
+}) {
+  try {
+    await prisma.wishlistItem.update({
+      where: { id: data.id },
+      data: {
+        title: data.title,
+        amount: data.targetAmount,
+        ...(data.status ? { status: data.status as WishlistStatus } : {}),
+      },
+    });
+    revalidatePath('/savings');
+    return { success: true };
+  } catch (error) {
+    console.error('Failed to update goal:', error);
+    return { success: false, error: 'Failed to update goal' };
   }
 }
 

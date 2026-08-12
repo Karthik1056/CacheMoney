@@ -40,6 +40,10 @@
 
     --radius: 0.75rem;
   }
+
+  html.light-theme {
+    filter: invert(0.93) hue-rotate(180deg);
+  }
 }
 
 body {

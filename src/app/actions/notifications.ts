@@ -5,9 +5,79 @@ import { revalidatePath } from 'next/cache';
 
 export async function getNotifications() {
   try {
+    const now = new Date();
+    const oneDayAhead = new Date(now.getTime() + 24 * 60 * 60 * 1000);
+
+    // 1. Find bills due within 1 day (or overdue) that are not paid
+    const upcomingBills = await prisma.bill.findMany({
+      where: {
+        status: { in: ['DUE', 'OVERDUE'] },
+        dueDate: { lte: oneDayAhead },
+      },
+    });
+
+    // 2. Find subscriptions/reminders due within 1 day
+    const upcomingSubscriptions = await prisma.subscription.findMany({
+      where: {
+        active: true,
+        deletedAt: null,
+        nextBilling: { lte: oneDayAhead },
+      },
+    });
+
+    // 3. Create missing notifications for bills due soon / 1 day before
+    for (const bill of upcomingBills) {
+      const isOverdue = new Date(bill.dueDate) < now;
+      const title = isOverdue ? `Bill Overdue: ${bill.title}` : `Bill Due Soon: ${bill.title}`;
+      const subtitle = `Amount: ₹${Number(bill.amount).toLocaleString('en-IN')} | Due: ${new Date(bill.dueDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
+
+      const exists = await prisma.notification.findFirst({
+        where: {
+          title,
+          subtitle,
+        },
+      });
+
+      if (!exists) {
+        await prisma.notification.create({
+          data: {
+            type: 'subscription_due',
+            title,
+            subtitle,
+            icon: 'FileText',
+          },
+        });
+      }
+    }
+
+    // 4. Create missing notifications for subscriptions/reminders due soon / 1 day before
+    for (const sub of upcomingSubscriptions) {
+      const isOverdue = new Date(sub.nextBilling) < now;
+      const title = isOverdue ? `Reminder Overdue: ${sub.name}` : `Reminder Due Soon: ${sub.name}`;
+      const subtitle = `${sub.category || 'General'} | Due: ${new Date(sub.nextBilling).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`;
+
+      const exists = await prisma.notification.findFirst({
+        where: {
+          title,
+          subtitle,
+        },
+      });
+
+      if (!exists) {
+        await prisma.notification.create({
+          data: {
+            type: 'subscription_due',
+            title,
+            subtitle,
+            icon: 'Bell',
+          },
+        });
+      }
+    }
+
     const notifications = await prisma.notification.findMany({
       orderBy: { createdAt: 'desc' },
-      take: 20,
+      take: 25,
     });
 
     return notifications.map((n) => ({
@@ -27,6 +97,7 @@ export async function getNotifications() {
 
 export async function getUnreadCount() {
   try {
+    await getNotifications();
     return await prisma.notification.count({ where: { read: false } });
   } catch (error) {
     console.error('Failed to fetch unread count:', error);

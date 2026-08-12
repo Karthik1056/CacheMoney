@@ -3,6 +3,7 @@ import { ExpensesWebPage } from '@/components/web-screens';
 import { getExpensesData, getAnalyticsData } from '@/app/actions/expenses';
 import { getAccounts, getCategories } from '@/app/actions/manage';
 import { AddTransactionDialog } from '@/components/add-transaction-dialog';
+import { format } from 'date-fns';
 
 export const dynamic = 'force-dynamic';
 
@@ -15,13 +16,15 @@ export default async function Page({
     date?: string;
   };
 }) {
-  let activeTab: 'spends' | 'categories' | 'reports' = 'spends';
+  let activeTab: 'spends' | 'categories' = 'spends';
   if (searchParams?.tab === 'categories') activeTab = 'categories';
-  if (searchParams?.tab === 'reports') activeTab = 'reports';
+
+  const targetDateStr = searchParams?.date;
+  const targetMonthStr = searchParams?.month ?? (targetDateStr ? targetDateStr.substring(0, 7) : format(new Date(), 'yyyy-MM'));
 
   const [data, analyticsData, accounts, categories] = await Promise.all([
-    getExpensesData(searchParams?.month, searchParams?.date),
-    getAnalyticsData(),
+    getExpensesData(targetMonthStr, targetDateStr),
+    getAnalyticsData(undefined, targetMonthStr, targetDateStr),
     getAccounts(),
     getCategories(),
   ]);

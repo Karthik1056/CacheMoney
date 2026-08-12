@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import {
   ArrowUpRight,
@@ -23,6 +24,7 @@ import {
 
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import {
   DropdownMenu,
@@ -62,6 +64,7 @@ import { markAllRead, markNotificationRead, deleteNotification } from '@/app/act
 import {
   DeleteSubscriptionButton,
   DeleteGoalButton,
+  EditGoalDialog,
   DeleteTransactionButton,
   AddGoalDialog,
   AddSubscriptionDialog,
@@ -81,7 +84,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 
-function Panel({ children, className }: { children: ReactNode; className?: string }) {
+export function Panel({ children, className }: { children: ReactNode; className?: string }) {
   return (
     <Card className={cn('overflow-hidden bg-[#111a25]/95 shadow-[0_16px_30px_rgba(0,0,0,0.22)] border-white/10', className)}>
       <CardContent className="p-4 sm:p-5">{children}</CardContent>
@@ -89,7 +92,7 @@ function Panel({ children, className }: { children: ReactNode; className?: strin
   );
 }
 
-function SectionLabel({ title, subtitle }: { title: string; subtitle?: string }) {
+export function SectionLabel({ title, subtitle }: { title: string; subtitle?: string }) {
   return (
     <div>
       <div className="text-[12px] uppercase tracking-[0.24em] text-white/40 sm:text-[13px]">{title}</div>
@@ -150,30 +153,30 @@ function EntryRow({
   editDialog?: ReactNode;
 }) {
   return (
-    <div className="flex items-start justify-between gap-3 border-b border-white/8 py-3 last:border-b-0 sm:gap-4 sm:py-4">
-      <div className="flex items-center gap-3">
+    <div className="flex items-center justify-between gap-2.5 border-b border-white/8 py-3 last:border-b-0 sm:gap-4 sm:py-4">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1 sm:gap-3">
         <div
-          className="flex h-10 w-10 items-center justify-center rounded-[14px] text-white sm:h-11 sm:w-11"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] text-white sm:h-11 sm:w-11"
           style={{ backgroundColor: iconColor || '#4a5665' }}
         >
-          <Icon size={17} strokeWidth={2} />
+          <Icon size={16} strokeWidth={2} />
         </div>
-        <div>
-            <div className="text-[15px] font-semibold leading-tight text-white sm:text-[17px]">{title}</div>
-          <div className="mt-0.5 text-[12px] text-white/55 sm:mt-1 sm:text-[13px]">{date}</div>
+        <div className="min-w-0 flex-1">
+          <div className="text-[14px] font-semibold leading-snug text-white truncate sm:text-[16px]">{title}</div>
+          <div className="mt-0.5 text-[11px] text-white/55 truncate sm:text-[12px]">{date}</div>
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 shrink-0">
         <div className="text-right">
           <div
             className={cn(
-              'text-[13px] font-medium leading-tight sm:text-[15px]',
+              'text-[13px] font-semibold leading-tight sm:text-[15px]',
               isIncome ? 'text-emerald-400' : 'text-white',
             )}
           >
             {isIncome ? `+ ${amount}` : `- ${amount}`}
           </div>
-          <div className="mt-0.5 text-[12px] text-white/55 sm:mt-1 sm:text-[13px]">{method}</div>
+          <div className="mt-0.5 text-[11px] text-white/55 truncate max-w-[90px] sm:max-w-none sm:text-[12px]">{method}</div>
         </div>
         {editDialog}
       </div>
@@ -233,6 +236,7 @@ function ReminderRow({
 
 function NotificationRow({
   id,
+  type,
   icon: Icon,
   title,
   subtitle,
@@ -240,16 +244,41 @@ function NotificationRow({
   read,
 }: {
   id: string;
+  type?: string;
   icon: LucideIcon;
   title: string;
   subtitle: string;
   time: string;
   read?: boolean;
 }) {
+  const router = useRouter();
+
+  const handleRowClick = async () => {
+    if (!read) {
+      await markNotificationRead(id);
+    }
+    const lowerTitle = title.toLowerCase();
+    const lowerType = (type || '').toLowerCase();
+
+    if (lowerTitle.includes('bill') || lowerType.includes('bill')) {
+      router.push('/bills');
+    } else if (lowerTitle.includes('reminder') || lowerType.includes('subscription')) {
+      router.push('/reminders');
+    } else if (lowerTitle.includes('expense') || lowerTitle.includes('spending')) {
+      router.push('/expenses');
+    } else {
+      router.push('/entries');
+    }
+  };
+
   return (
-    <Alert variant={read ? 'default' : 'info'} className="my-2.5">
+    <Alert
+      variant={read ? 'default' : 'info'}
+      onClick={handleRowClick}
+      className="my-2.5 cursor-pointer transition-all hover:bg-white/10 hover:border-white/20"
+    >
       <Icon size={18} />
-      <div className="flex items-start justify-between gap-3 pl-2">
+      <div className="flex items-start justify-between gap-3 pl-2 w-full">
         <div className="flex-1 min-w-0">
           <AlertTitle className="text-[15px] font-bold text-white flex items-center gap-2">
             <span>{title}</span>
@@ -264,7 +293,7 @@ function NotificationRow({
             <span className="block mt-1 text-[11px] text-white/45">{time}</span>
           </AlertDescription>
         </div>
-        <div className="flex items-center gap-1 shrink-0">
+        <div className="flex items-center gap-1 shrink-0" onClick={(e) => e.stopPropagation()}>
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <button type="button" className="text-white/55 hover:text-white p-1 rounded-full hover:bg-white/10 transition-colors">
@@ -466,18 +495,15 @@ function SavingsRing({
   );
 }
 
-function TabHeader({ active }: { active: 'spends' | 'categories' | 'reports' }) {
+function TabHeader({ active }: { active: 'spends' | 'categories' }) {
   return (
     <Tabs value={active} className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-3 gap-1.5 rounded-[22px] border border-white/10 bg-[#16212d] p-1.5 sm:rounded-[24px] sm:p-2">
+      <TabsList className="grid h-auto w-full grid-cols-2 gap-1.5 rounded-[22px] border border-white/10 bg-[#16212d] p-1.5 sm:rounded-[24px] sm:p-2">
         <TabsTrigger asChild value="spends" className={cn(active !== 'spends' && 'bg-transparent text-white/55')}>
           <Link href="/expenses?tab=spends">Spends</Link>
         </TabsTrigger>
         <TabsTrigger asChild value="categories" className={cn(active !== 'categories' && 'bg-transparent text-white/55')}>
           <Link href="/expenses?tab=categories">Categories</Link>
-        </TabsTrigger>
-        <TabsTrigger asChild value="reports" className={cn(active !== 'reports' && 'bg-transparent text-white/55')}>
-          <Link href="/expenses?tab=reports">Reports</Link>
         </TabsTrigger>
       </TabsList>
     </Tabs>
@@ -519,10 +545,27 @@ function CategoryDonutRing({
   const strokeWidth = 14;
   const circumference = 2 * Math.PI * radius;
 
-  const validBreakdown = breakdown.filter((item) => item.spent > 0 || item.percentage > 0);
-  const displayItems = validBreakdown.length > 0 ? validBreakdown : [
-    { id: '1', name: 'Net Assets', color: '#2f56ff', percentage: 100, spent: netBalance }
-  ];
+  const totalSpentInBreakdown = breakdown.reduce((sum, item) => sum + item.spent, 0);
+  const startingTotal = netBalance + totalSpentInBreakdown;
+
+  // Build complete donut items including remaining Net Balance
+  const displayItems = breakdown
+    .filter((item) => item.spent > 0)
+    .map((item) => ({
+      ...item,
+      percentage: startingTotal > 0 ? (item.spent / startingTotal) * 100 : 0,
+    }));
+
+  const remainingBalancePercentage = startingTotal > 0 ? (netBalance / startingTotal) * 100 : 100;
+  if (remainingBalancePercentage > 0) {
+    displayItems.unshift({
+      id: 'net-balance-slice',
+      name: 'Remaining Balance',
+      color: '#2f56ff',
+      spent: netBalance,
+      percentage: remainingBalancePercentage,
+    });
+  }
 
   let cumulativePercentage = 0;
 
@@ -566,7 +609,7 @@ function CategoryDonutRing({
                 ₹{hoveredCategory.spent.toLocaleString('en-IN')}
               </div>
               <div className="text-[11px] font-semibold text-emerald-400">
-                {hoveredCategory.percentage}% share
+                {hoveredCategory.percentage.toFixed(1)}% share
               </div>
             </div>
           ) : (
@@ -595,7 +638,7 @@ function CategoryDonutRing({
             )}
           >
             <span className="h-2.5 w-2.5 rounded-full shrink-0" style={{ backgroundColor: item.color }} />
-            <span>{item.name} ({item.percentage}%)</span>
+            <span>{item.name} ({item.percentage.toFixed(1)}%)</span>
           </div>
         ))}
       </div>
@@ -669,29 +712,68 @@ export function OverviewWebPage({
 
   return (
     <div className="space-y-4 sm:space-y-6">
-      {/* Balance Snapshot: Radial Chart + Interactive Line Chart side by side on large screens */}
-      <div className="grid gap-4 lg:grid-cols-[auto_1fr] lg:gap-6">
-        {/* Radial Chart — Balance Snapshot */}
-        <div className="lg:w-[320px]">
-          <OverviewRadialChart
-            totalIncome={data.totalIncome}
-            totalExpense={data.totalExpense}
-            totalBudget={data.totalBudget}
-            netBalance={data.netBalance}
-            momChange={data.momChange}
-          />
+      {/* 3 Summary Cards matching Picture1.png (Horizontal Scroll on Mobile) */}
+      {/* 3 Summary Cards matching Picture1.png (Mobile Optimized Grid) */}
+      <div className="grid grid-cols-3 gap-2 sm:gap-4">
+        {/* Card 1: Total Salary / Income */}
+        <div className="flex flex-col justify-between rounded-[20px] border border-white/10 bg-[#141d28] p-3 shadow-lg transition-all sm:rounded-[28px] sm:p-5">
+          <div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white sm:h-10 sm:w-10 sm:rounded-2xl">
+              <Wallet size={16} strokeWidth={2} className="sm:hidden" />
+              <Wallet size={20} strokeWidth={2} className="hidden sm:block" />
+            </div>
+            <div className="mt-2 text-[10px] font-medium text-white/70 sm:mt-3 sm:text-[13px]">Total Salary</div>
+          </div>
+          <div className="mt-2 text-[13px] font-bold tracking-tight text-white sm:mt-4 sm:text-[24px]">
+            ₹{data.totalIncome.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+          </div>
         </div>
 
-        {/* Interactive Line Chart */}
-        <OverviewInteractiveLineChart
-          selectedMonth={data.selectedMonth || currentMonthStr}
-          totalIncome={data.totalIncome}
-          totalExpense={data.totalExpense}
-          dailyTrends={data.dailyTrends || []}
-        />
+        {/* Card 2: Total Expense (Vibrant Blue Active Box Card) */}
+        <div className="flex flex-col justify-between rounded-[20px] border border-blue-500/30 bg-[linear-gradient(145deg,#2c54ff_0%,#183cd4_100%)] p-3 text-white shadow-[0_10px_24px_rgba(44,84,255,0.38)] transition-all sm:rounded-[28px] sm:p-5">
+          <div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-white/20 text-white backdrop-blur-sm sm:h-10 sm:w-10 sm:rounded-2xl">
+              <Wallet size={16} strokeWidth={2} className="sm:hidden" />
+              <Wallet size={20} strokeWidth={2} className="hidden sm:block" />
+            </div>
+            <div className="mt-2 text-[10px] font-medium text-white/90 sm:mt-3 sm:text-[13px]">Total Expense</div>
+          </div>
+          <div className="mt-2 text-[13px] font-bold tracking-tight text-white sm:mt-4 sm:text-[24px]">
+            ₹{data.totalExpense.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+          </div>
+        </div>
+
+        {/* Card 3: Monthly Budget */}
+        <div className="flex flex-col justify-between rounded-[20px] border border-white/10 bg-[#141d28] p-3 shadow-lg transition-all sm:rounded-[28px] sm:p-5">
+          <div>
+            <div className="flex h-8 w-8 items-center justify-center rounded-xl border border-white/10 bg-white/5 text-white sm:h-10 sm:w-10 sm:rounded-2xl">
+              <Wallet size={16} strokeWidth={2} className="sm:hidden" />
+              <Wallet size={20} strokeWidth={2} className="hidden sm:block" />
+            </div>
+            <div className="mt-2 text-[10px] font-medium text-white/70 sm:mt-3 sm:text-[13px]">Monthly Budget</div>
+          </div>
+          <div className="mt-2 text-[13px] font-bold tracking-tight text-white sm:mt-4 sm:text-[24px]">
+            ₹{data.totalBudget.toLocaleString('en-IN', { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+          </div>
+        </div>
       </div>
 
-      <div className="grid gap-4 xl:grid-cols-[1.2fr_.8fr] xl:gap-6">
+      <div className="grid gap-4 xl:grid-cols-[.8fr_1.2fr] xl:gap-6">
+        {/* Left Column: Balance Snapshot Donut Chart */}
+        <Panel>
+          <div className="flex items-center justify-between gap-4">
+            <SectionLabel title="Balance snapshot" subtitle="Hover slices for category details." />
+            <Badge variant="secondary" className="border-white/10 bg-white/5 text-white/75">
+              Categories
+            </Badge>
+          </div>
+
+          <div className="mt-4 flex flex-col items-center sm:mt-5">
+            <CategoryDonutRing netBalance={data.netBalance} breakdown={categoryBreakdownList} />
+          </div>
+        </Panel>
+
+        {/* Right Column: Top Category Budgets, Savings & Reminders (Top 5 Items) */}
         <Panel>
           <div className="flex items-center justify-between gap-4">
             <SectionLabel
@@ -702,12 +784,11 @@ export function OverviewWebPage({
                   ? 'Upcoming Reminders'
                   : 'Top Category Budgets'
               }
-              subtitle="Showing last 3 activity records."
+              subtitle="Showing top 5 activity records."
             />
-            <BudgetSalaryDialog />
           </div>
 
-          {/* Filter Buttons - In-place filter without screen navigation */}
+          {/* Filter Buttons */}
           <div className="mt-4 flex flex-wrap gap-2 sm:mt-5 sm:gap-2.5">
             <Button
               type="button"
@@ -753,11 +834,11 @@ export function OverviewWebPage({
             </Button>
           </div>
 
-          {/* In-Place Content Display */}
+          {/* Top 5 In-Place Content Display */}
           <div className="mt-5 space-y-2">
             {activeFilter === 'all' && (
               data.latestTransactions.length > 0 ? (
-                data.latestTransactions.slice(0, 3).map((tx) => (
+                data.latestTransactions.slice(0, 5).map((tx) => (
                   <EntryRow
                     key={tx.id}
                     icon={getIcon(tx.categoryIcon)}
@@ -776,7 +857,7 @@ export function OverviewWebPage({
 
             {activeFilter === 'savings' && (
               latestSavingsList.length > 0 ? (
-                latestSavingsList.slice(0, 3).map((goal) => (
+                latestSavingsList.slice(0, 5).map((goal) => (
                   <EntryRow
                     key={goal.id}
                     icon={Wallet}
@@ -795,7 +876,7 @@ export function OverviewWebPage({
 
             {activeFilter === 'reminders' && (
               latestRemindersList.length > 0 ? (
-                latestRemindersList.slice(0, 3).map((rem) => (
+                latestRemindersList.slice(0, 5).map((rem) => (
                   <EntryRow
                     key={rem.id}
                     icon={Bell}
@@ -814,7 +895,7 @@ export function OverviewWebPage({
 
             {activeFilter === 'budget' && (
               data.budgetMeters.length > 0 ? (
-                data.budgetMeters.slice(0, 3).map((meter) => (
+                data.budgetMeters.slice(0, 5).map((meter) => (
                   <EntryRow
                     key={meter.id}
                     icon={getIcon(meter.icon)}
@@ -832,47 +913,6 @@ export function OverviewWebPage({
             )}
           </div>
         </Panel>
-
-        <div className="space-y-4 sm:space-y-6">
-          <Panel>
-            <div className="flex items-center justify-between gap-4">
-              <SectionLabel title="Balance snapshot" subtitle="Hover slices for category details." />
-              <Badge variant="secondary" className="border-white/10 bg-white/5 text-white/75">
-                Categories
-              </Badge>
-            </div>
-
-            <div className="mt-4 flex flex-col items-center sm:mt-5">
-              <CategoryDonutRing netBalance={data.netBalance} breakdown={categoryBreakdownList} />
-            </div>
-          </Panel>
-
-          <Panel>
-            <div className="flex items-center justify-between">
-              <SectionLabel title="Quick stats" subtitle="Dynamic category spend progress" />
-              <Badge variant="secondary" className="gap-1 border-white/10 bg-white/5 text-white/75">
-                <ArrowUpRight size={14} />
-                <span>{data.momChange >= 0 ? `+${data.momChange}%` : `${data.momChange}%`}</span>
-              </Badge>
-            </div>
-
-            <div className="mt-4 space-y-4 sm:mt-5">
-              {data.budgetMeters.length > 0 ? (
-                data.budgetMeters.map((meter) => (
-                  <ProgressBar
-                    key={meter.id}
-                    label={meter.name}
-                    left={`₹${meter.spent.toFixed(0)}`}
-                    right={meter.cap > 0 ? `₹${meter.cap.toFixed(0)}` : `₹${data.totalExpense.toFixed(0)}`}
-                    value={`${meter.percentage}%`}
-                  />
-                ))
-              ) : (
-                <div className="py-4 text-center text-[13px] text-white/45">No spending activity logged for categories.</div>
-              )}
-            </div>
-          </Panel>
-        </div>
       </div>
     </div>
   );
@@ -886,7 +926,7 @@ export function ExpensesWebPage({
   accounts = [],
   categories = [],
 }: {
-  activeTab: 'spends' | 'categories' | 'reports';
+  activeTab: 'spends' | 'categories';
   data: {
     month: string;
     selectedDate?: string | null;
@@ -971,7 +1011,7 @@ export function ExpensesWebPage({
 
       <Panel>
         <div className="flex items-center justify-between gap-4 flex-wrap">
-          <SectionLabel title="Expenses & Reports" subtitle="Switch between spends list, categories, and visual reports." />
+          <SectionLabel title="Expenses" subtitle="Switch between spends list and categories view." />
           <div className="flex items-center gap-2">
             <AddTransactionDialog
               accounts={accounts}
@@ -994,25 +1034,13 @@ export function ExpensesWebPage({
             <span className="text-[13px] font-medium">
               Filtered for: <strong className="text-white">{format(new Date(data.selectedDate), 'dd MMMM yyyy')}</strong>
             </span>
-            <Link href="/expenses?tab=spends" className="text-[12px] underline text-white/80 hover:text-white">
+            <Link href={`/expenses?tab=${activeTab}`} className="text-[12px] underline text-white/80 hover:text-white">
               Clear filter
             </Link>
           </div>
         )}
 
-        {activeTab === 'reports' ? (
-          <div className="mt-5">
-            {analyticsData ? (
-              <AnalyticsCharts
-                initialYear={analyticsData.year}
-                monthlyOverview={analyticsData.monthlyOverview}
-                categoryDistribution={analyticsData.categoryDistribution}
-              />
-            ) : (
-              <div className="py-8 text-center text-[14px] text-white/45">Loading analytics...</div>
-            )}
-          </div>
-        ) : activeTab === 'categories' ? (
+        {activeTab === 'categories' ? (
           <div className="mt-4 sm:mt-5">
             <GaugeCard breakdown={data.categoryBreakdown} />
           </div>
@@ -1180,6 +1208,18 @@ export function SavingsWebPage({
     }>;
   };
 }) {
+  const [statusFilter, setStatusFilter] = useState<string>('ALL');
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [isFilterSheetOpen, setIsFilterSheetOpen] = useState(false);
+
+  const filteredGoals = data.goals.filter((g) => {
+    const matchesStatus = statusFilter === 'ALL' || g.status.toUpperCase() === statusFilter.toUpperCase();
+    const matchesSearch = g.title.toLowerCase().includes(searchTerm.toLowerCase());
+    return matchesStatus && matchesSearch;
+  });
+
+  const activeFilterCount = (statusFilter !== 'ALL' ? 1 : 0) + (searchTerm.trim() ? 1 : 0);
+
   return (
     <div className="grid gap-4 xl:grid-cols-[0.85fr_1.15fr] xl:gap-6">
       <Panel>
@@ -1213,35 +1253,134 @@ export function SavingsWebPage({
       </Panel>
 
       <Panel>
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex items-center justify-between gap-4 flex-wrap">
           <SectionLabel title="Your Goals" subtitle="Track your wishlist and savings progress." />
-          <AddGoalDialog />
+          <div className="flex items-center gap-2">
+            {/* ShadCN Sheet Filter Drawer */}
+            <Sheet open={isFilterSheetOpen} onOpenChange={setIsFilterSheetOpen}>
+              <SheetTrigger asChild>
+                <Button
+                  variant="outline"
+                  className="gap-2 rounded-[16px] border-white/10 bg-[#16212d] text-white hover:bg-white/10"
+                >
+                  <SlidersHorizontal size={16} className="text-[#2f56ff]" />
+                  <span>Filter</span>
+                  {activeFilterCount > 0 && (
+                    <span className="flex h-5 w-5 items-center justify-center rounded-full bg-[#2f56ff] text-[11px] font-bold text-white">
+                      {activeFilterCount}
+                    </span>
+                  )}
+                </Button>
+              </SheetTrigger>
+
+              <SheetContent
+                side="bottom"
+                className="rounded-t-[32px] border-t border-white/10 bg-[#0e1622]/95 backdrop-blur-xl text-white max-h-[85vh] overflow-y-auto p-6 shadow-2xl"
+              >
+                <SheetHeader className="text-left">
+                  <SheetTitle className="text-[20px] font-bold text-white flex items-center gap-2">
+                    <Filter size={20} className="text-[#2f56ff]" /> Filter Savings Goals
+                  </SheetTitle>
+                </SheetHeader>
+
+                <div className="space-y-4 mt-4">
+                  {/* Search Title */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium text-white/70">Search Goal Title</Label>
+                    <Input
+                      placeholder="e.g. Laptop, Fund..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="bg-[#16212d] border-white/10 text-white rounded-[16px] placeholder:text-white/30"
+                    />
+                  </div>
+
+                  {/* Goal Status Filter */}
+                  <div className="space-y-1.5">
+                    <Label className="text-[13px] font-medium text-white/70">Status Filter</Label>
+                    <div className="grid grid-cols-3 gap-2">
+                      {[
+                        { id: 'ALL', label: 'All Goals' },
+                        { id: 'WAITING', label: 'Waiting' },
+                        { id: 'COMPLETED', label: 'Completed' },
+                      ].map((st) => (
+                        <button
+                          key={st.id}
+                          type="button"
+                          onClick={() => setStatusFilter(st.id)}
+                          className={`py-2 px-3 text-[12px] font-semibold rounded-[14px] border transition-all ${
+                            statusFilter === st.id
+                              ? 'bg-[#2f56ff] text-white border-[#2f56ff] shadow-[0_4px_12px_rgba(47,86,255,0.3)]'
+                              : 'bg-[#16212d] text-white/70 border-white/10 hover:bg-white/10 hover:text-white'
+                          }`}
+                        >
+                          {st.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="pt-2 space-y-2">
+                    <Button
+                      type="button"
+                      onClick={() => setIsFilterSheetOpen(false)}
+                      className="w-full bg-gradient-to-r from-[#2f56ff] to-[#1e3a8a] hover:from-[#3862ff] hover:to-[#2546b8] text-white py-5 text-[15px] font-bold rounded-[18px] shadow-[0_10px_25px_rgba(47,86,255,0.4)] transition-all"
+                    >
+                      Apply Filter
+                    </Button>
+                    {activeFilterCount > 0 && (
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => {
+                          setStatusFilter('ALL');
+                          setSearchTerm('');
+                          setIsFilterSheetOpen(false);
+                        }}
+                        className="w-full gap-2 rounded-[16px] border-white/10 bg-white/5 text-white/70 hover:bg-white/10 hover:text-white"
+                      >
+                        <RotateCcw size={15} /> Reset Filters
+                      </Button>
+                    )}
+                  </div>
+                </div>
+              </SheetContent>
+            </Sheet>
+
+            <AddGoalDialog />
+          </div>
         </div>
 
-        <div className="mt-4 space-y-5 sm:mt-5 sm:space-y-6">
-          {data.goals.length > 0 ? (
-            data.goals.map((g) => {
+        <div className="mt-4 space-y-3 sm:mt-5">
+          {filteredGoals.length > 0 ? (
+            filteredGoals.map((g) => {
               const savedPct = Math.min(Math.round((data.totalSavings / g.targetAmount) * 100), 100);
               return (
-                <div key={g.id}>
+                <div key={g.id} className="rounded-[20px] border border-white/10 bg-[#16212d] p-4 transition-all hover:border-white/20">
                   <div className="flex items-center justify-between gap-4">
                     <div>
                       <div className="text-[15px] font-semibold text-white sm:text-[17px]">{g.title}</div>
-                      <div className="mt-1 text-[12px] text-white/55 sm:text-[13px]">Status: {g.status}</div>
+                      <div className="mt-1 text-[12px] text-white/55 sm:text-[13px]">
+                        Status: <span className="font-semibold text-emerald-400">{g.status}</span>
+                      </div>
                     </div>
                     <div className="flex items-center gap-3">
-                      <div className="text-[12px] text-white/55 sm:text-[13px]">₹{g.targetAmount.toLocaleString('en-IN')}</div>
-                      <DeleteGoalButton id={g.id} />
+                      <div className="text-[15px] font-bold text-white">₹{g.targetAmount.toLocaleString('en-IN')}</div>
+                      <div className="flex items-center gap-1">
+                        <EditGoalDialog goal={g} />
+                        <DeleteGoalButton id={g.id} />
+                      </div>
                     </div>
                   </div>
-                  <div className="mt-2.5 h-2 rounded-full bg-white/10 sm:mt-3">
-                    <div className="h-2 rounded-full bg-[#2f56ff] transition-all" style={{ width: `${savedPct}%` }} />
+                  <div className="mt-3 h-2 rounded-full bg-white/10">
+                    <div className="h-2 rounded-full bg-gradient-to-r from-[#2f56ff] to-[#10b981] transition-all" style={{ width: `${savedPct}%` }} />
                   </div>
                 </div>
               );
             })
           ) : (
-            <div className="py-8 text-center text-[14px] text-white/45">No savings goals created yet.</div>
+            <div className="py-8 text-center text-[14px] text-white/45">No savings goals found.</div>
           )}
         </div>
       </Panel>
@@ -1486,6 +1625,7 @@ export function NotificationsWebPage({
             <NotificationRow
               key={row.id}
               id={row.id}
+              type={row.type}
               icon={getIcon(row.icon)}
               title={row.title}
               subtitle={row.subtitle}

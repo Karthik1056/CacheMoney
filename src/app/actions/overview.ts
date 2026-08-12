@@ -16,61 +16,40 @@ export async function getOverviewData(month?: string) {
     const prevStart = startOfMonth(prevTarget);
     const prevEnd = endOfMonth(prevTarget);
 
-    // 1. Parallelize initial metadata queries
-    const [accounts, incomeCategories, budgets, latestTransactions, expenseCategories, latestGoals, latestReminders] = await Promise.all([
+    // Consolidated single Promise.all batch for optimal Prisma Accelerate execution
+    const [
+      accounts,
+      incomeCategories,
+      allCategories,
+      budgets,
+      latestTransactions,
+      latestGoals,
+      latestReminders,
+      incomeAgg,
+      expenseAgg,
+      prevExpenseAgg,
+      categoryGroupedExpenses,
+      monthTransactions,
+    ] = await Promise.all([
       prisma.account.findMany({ where: { deletedAt: null } }),
-      prisma.category.findMany({
-        where: { isIncome: true, deletedAt: null },
-        select: { id: true },
-      }),
-      prisma.budget.findMany({
-        where: { month: targetMonth },
-        include: { category: true },
-      }),
+      prisma.category.findMany({ where: { isIncome: true, deletedAt: null }, select: { id: true } }),
+      prisma.category.findMany({ where: { deletedAt: null } }),
+      prisma.budget.findMany({ where: { month: targetMonth, category: { deletedAt: null } }, include: { category: true } }),
       prisma.transaction.findMany({
         where: { deletedAt: null },
         orderBy: { date: 'desc' },
-        take: 3,
+        take: 5,
         include: { category: true, fromAccount: true },
       }),
-      prisma.category.findMany({
-        where: { isIncome: false, deletedAt: null, name: { not: 'Overall Expense Budget' } },
-        take: 3,
-      }),
-      prisma.wishlistItem.findMany({
-        where: { deletedAt: null },
-        orderBy: { createdAt: 'desc' },
-        take: 3,
-      }),
-      prisma.subscription.findMany({
-        where: { deletedAt: null },
-        orderBy: { nextBilling: 'asc' },
-        take: 3,
-      }),
-    ]);
-
-    const netBalance = accounts.reduce((sum: number, acc: any) => {
-      const bal = Number(acc.balance);
-      return acc.type === 'LIABILITY' ? sum - bal : sum + bal;
-    }, 0);
-
-    const incomeCatIds = incomeCategories.map((c: any) => c.id);
-
-    // 2. Parallelize aggregations (Income, Expense, PrevExpense, and Budget Meters)
-    const [incomeAgg, expenseAgg, prevExpenseAgg, ...meterAggs] = await Promise.all([
+      prisma.wishlistItem.findMany({ where: { deletedAt: null }, orderBy: { createdAt: 'desc' }, take: 5 }),
+      prisma.subscription.findMany({ where: { deletedAt: null }, orderBy: { nextBilling: 'asc' }, take: 5 }),
       prisma.transaction.aggregate({
         _sum: { amount: true },
-        where: {
-          deletedAt: null,
-          category: { isIncome: true },
-        },
+        where: { deletedAt: null, category: { isIncome: true } },
       }),
       prisma.transaction.aggregate({
         _sum: { amount: true },
-        where: {
-          deletedAt: null,
-          OR: [{ category: { isIncome: false } }, { categoryId: null }],
-        },
+        where: { deletedAt: null, OR: [{ category: { isIncome: false } }, { categoryId: null }] },
       }),
       prisma.transaction.aggregate({
         _sum: { amount: true },
@@ -80,21 +59,32 @@ export async function getOverviewData(month?: string) {
           date: { gte: prevStart, lte: prevEnd },
         },
       }),
-      ...expenseCategories.map((cat: any) =>
-        prisma.transaction.aggregate({
-          _sum: { amount: true },
-          where: {
-            deletedAt: null,
-            categoryId: cat.id,
-            date: { gte: startDate, lte: endDate },
-          },
-        })
-      ),
+      prisma.transaction.groupBy({
+        by: ['categoryId'],
+        _sum: { amount: true },
+        where: {
+          deletedAt: null,
+          date: { gte: startDate, lte: endDate },
+          OR: [{ category: { isIncome: false } }, { categoryId: null }],
+        },
+      }),
+      prisma.transaction.findMany({
+        where: { deletedAt: null, date: { gte: startDate, lte: endDate } },
+        include: { category: true },
+      }),
     ]);
 
     const totalIncome = Number(incomeAgg._sum?.amount || 0);
     const totalExpense = Number(expenseAgg._sum?.amount || 0);
     const prevTotalExpense = Number(prevExpenseAgg._sum?.amount || 0);
+
+    const rawAccountBalance = accounts.reduce((sum: number, acc: any) => {
+      const bal = Number(acc.balance);
+      return acc.type === 'LIABILITY' ? sum - bal : sum + bal;
+    }, 0);
+
+    // Dynamic Net Balance = Accounts Capital - Total Expenses
+    const netBalance = rawAccountBalance > totalExpense ? rawAccountBalance - totalExpense : rawAccountBalance;
 
     const momChange =
       prevTotalExpense > 0
@@ -111,21 +101,9 @@ export async function getOverviewData(month?: string) {
       ? Number(overallExpenseBudget.amount)
       : budgets.filter((b: any) => !b.category.isIncome).reduce((sum: number, b: any) => sum + Number(b.amount), 0);
 
-    // 5. Category Breakdown & Dynamic Budget Meters
-    const categoryGroupedExpenses = await prisma.transaction.groupBy({
-      by: ['categoryId'],
-      _sum: { amount: true },
-      where: {
-        deletedAt: null,
-        OR: [{ category: { isIncome: false } }, { categoryId: null }],
-      },
-    });
-
-    const allCategories = await prisma.category.findMany({
-      where: { deletedAt: null },
-    });
-
     const totalExpenseAll = categoryGroupedExpenses.reduce((sum: number, item: any) => sum + Number(item._sum.amount || 0), 0);
+    // Base denominator for category share (net balance + total expenses = original starting balance)
+    const baseBalance = netBalance > 0 ? (netBalance + totalExpenseAll) : (totalExpenseAll > 0 ? totalExpenseAll : 1);
 
     const categoryBreakdown = categoryGroupedExpenses
       .map((item: any) => {
@@ -133,6 +111,8 @@ export async function getOverviewData(month?: string) {
         const spent = Number(item._sum.amount || 0);
         const budget = budgets.find((b: any) => b.categoryId === item.categoryId);
         const cap = budget ? Number(budget.amount) : 0;
+        const percentage = baseBalance > 0 ? Math.round((spent / baseBalance) * 100) : 0;
+
         return {
           id: item.categoryId || 'uncategorized',
           name: cat?.name || 'Uncategorized',
@@ -140,21 +120,12 @@ export async function getOverviewData(month?: string) {
           icon: cat?.icon || 'CircleDollarSign',
           spent,
           cap,
-          percentage: cap > 0 ? Math.min(Math.round((spent / cap) * 100), 100) : (totalExpenseAll > 0 ? Math.round((spent / totalExpenseAll) * 100) : 0),
+          percentage,
         };
       })
       .sort((a: any, b: any) => b.spent - a.spent);
 
-    const budgetMeters = categoryBreakdown.slice(0, 4);
-
-    // 6. Generate Daily Trends for Interactive Line Chart
-    const monthTransactions = await prisma.transaction.findMany({
-      where: {
-        deletedAt: null,
-        date: { gte: startDate, lte: endDate },
-      },
-      include: { category: true },
-    });
+    const budgetMeters = categoryBreakdown.slice(0, 5);
 
     const daysInMonth = endDate.getDate();
     const yearNum = targetDate.getFullYear();

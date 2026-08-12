@@ -15,6 +15,9 @@ export default async function Page({
     category?: string;
     account?: string;
     status?: string;
+    range?: string;
+    startDate?: string;
+    endDate?: string;
     page?: string;
   };
 }) {
@@ -24,6 +27,8 @@ export default async function Page({
       categoryId: searchParams?.category,
       accountId: searchParams?.account,
       status: searchParams?.status,
+      startDate: searchParams?.startDate,
+      endDate: searchParams?.endDate,
       page: searchParams?.page ? parseInt(searchParams.page, 10) : 1,
     }),
     getFilterOptions(),

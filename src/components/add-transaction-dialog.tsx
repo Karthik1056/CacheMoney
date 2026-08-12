@@ -176,11 +176,9 @@ export function AddTransactionDialog({
 
       if (result.success) {
         setSuccess(true);
-        setTimeout(() => {
-          setOpen(false);
-          resetAll();
-          router.refresh();
-        }, 1000);
+        setOpen(false);
+        resetAll();
+        router.refresh();
       } else {
         setServerError(result.error || 'Failed to save transaction');
       }

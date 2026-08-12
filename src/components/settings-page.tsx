@@ -48,6 +48,8 @@ import { getIcon, AVAILABLE_ICONS } from '@/lib/icon-map';
 import { cn } from '@/lib/utils';
 import type { AccountType } from '@prisma/client';
 
+import { SettingsReportsSection } from '@/components/settings-reports';
+
 export function SettingsWebPage({
   accounts,
   categories,
@@ -78,7 +80,7 @@ export function SettingsWebPage({
     priority: number;
   }>;
 }) {
-  const [activeTab, setActiveTab] = useState('accounts');
+  const [activeTab, setActiveTab] = useState('reports');
 
   // Modal states
   const [isAccountOpen, setIsAccountOpen] = useState(false);
@@ -93,7 +95,10 @@ export function SettingsWebPage({
       <Card className="border-white/10 bg-[#111a25]/95 shadow-xl">
         <CardContent className="p-4 sm:p-6">
           <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
-            <TabsList className="grid w-full grid-cols-3 bg-[#16212d]">
+            <TabsList className="grid w-full grid-cols-4 bg-[#16212d]">
+              <TabsTrigger value="reports" className="data-[state=active]:bg-[#2f56ff] data-[state=active]:text-white">
+                Reports
+              </TabsTrigger>
               <TabsTrigger value="accounts" className="data-[state=active]:bg-[#2f56ff] data-[state=active]:text-white">
                 Accounts
               </TabsTrigger>
@@ -104,6 +109,11 @@ export function SettingsWebPage({
                 Rules
               </TabsTrigger>
             </TabsList>
+
+            {/* REPORTS TAB */}
+            <TabsContent value="reports" className="mt-6 space-y-4">
+              <SettingsReportsSection accounts={accounts} categories={categories} />
+            </TabsContent>
 
             {/* ACCOUNTS TAB */}
             <TabsContent value="accounts" className="mt-6 space-y-4">
@@ -340,6 +350,12 @@ function CategoryForm({ onSuccess, isLoading, setIsLoading }: any) {
   const [color, setColor] = useState('#2f56ff');
   const [isIncome, setIsIncome] = useState(false);
 
+  const PRESET_COLORS = [
+    '#EF4444', '#F59E0B', '#10B981', '#3B82F6',
+    '#6366F1', '#EC4899', '#14B8A6', '#8B5CF6',
+    '#06B6D4', '#22C55E', '#F97316', '#A855F7'
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
@@ -348,33 +364,71 @@ function CategoryForm({ onSuccess, isLoading, setIsLoading }: any) {
     onSuccess();
   };
 
+  const SelectedIconComp = getIcon(icon);
+
   return (
     <form onSubmit={handleSubmit} className="space-y-4 mt-2">
       <div className="space-y-1.5">
         <Label className="text-[13px] font-medium text-white/70">Category Name *</Label>
         <Input required value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Dining Out, Salary" className="bg-[#16212d] border-white/10 text-white rounded-[16px]" />
       </div>
+
       <div className="space-y-1.5">
         <Label className="text-[13px] font-medium text-white/70">Icon</Label>
         <Select value={icon} onValueChange={setIcon}>
           <SelectTrigger className="bg-[#16212d] border-white/10 text-white rounded-[16px]">
-            <SelectValue />
+            <div className="flex items-center gap-2">
+              <SelectedIconComp size={18} style={{ color }} />
+              <span>{icon}</span>
+            </div>
           </SelectTrigger>
-          <SelectContent className="max-h-[200px] bg-[#111a25] border-white/10 text-white rounded-[16px]">
-            {AVAILABLE_ICONS.map((ic) => (
-              <SelectItem key={ic} value={ic}>{ic}</SelectItem>
-            ))}
+          <SelectContent className="max-h-[220px] bg-[#111a25] border-white/10 text-white rounded-[16px]">
+            {AVAILABLE_ICONS.map((ic) => {
+              const IconComponent = getIcon(ic);
+              return (
+                <SelectItem key={ic} value={ic}>
+                  <div className="flex items-center gap-2 py-0.5">
+                    <IconComponent size={16} className="text-white/80" />
+                    <span>{ic}</span>
+                  </div>
+                </SelectItem>
+              );
+            })}
           </SelectContent>
         </Select>
       </div>
-      <div className="space-y-1.5">
-        <Label className="text-[13px] font-medium text-white/70">Badge Color (Hex)</Label>
-        <Input required value={color} onChange={(e) => setColor(e.target.value)} placeholder="#2f56ff" className="bg-[#16212d] border-white/10 text-white rounded-[16px]" />
+
+      <div className="space-y-2">
+        <Label className="text-[13px] font-medium text-white/70">Badge Color</Label>
+        <div className="flex items-center gap-3">
+          <input
+            type="color"
+            value={color}
+            onChange={(e) => setColor(e.target.value)}
+            className="h-10 w-12 cursor-pointer rounded-lg border border-white/10 bg-transparent p-1"
+          />
+          <div className="flex flex-wrap gap-1.5">
+            {PRESET_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                onClick={() => setColor(c)}
+                className={cn(
+                  "h-6 w-6 rounded-full transition-transform hover:scale-110",
+                  color === c ? "ring-2 ring-white ring-offset-2 ring-offset-[#0b131e]" : ""
+                )}
+                style={{ backgroundColor: c }}
+              />
+            ))}
+          </div>
+        </div>
       </div>
+
       <div className="flex items-center gap-3 rounded-[16px] border border-white/10 bg-[#16212d] p-3">
         <Switch checked={isIncome} onCheckedChange={setIsIncome} />
         <Label className="text-[13px] font-medium text-white/80">Mark as Income Category</Label>
       </div>
+
       <Button disabled={isLoading} type="submit" className="w-full bg-gradient-to-r from-[#2f56ff] to-[#1e3a8a] hover:from-[#3862ff] hover:to-[#2546b8] text-white py-5 font-bold rounded-[18px] shadow-[0_10px_25px_rgba(47,86,255,0.4)] transition-all">
         {isLoading ? <Loader2 size={16} className="animate-spin" /> : 'Save Category'}
       </Button>
