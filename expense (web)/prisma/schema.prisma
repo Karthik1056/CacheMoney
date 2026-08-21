@@ -1,0 +1,288 @@
+datasource db {
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
+}
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+enum AccountType {
+  ASSET      // Checking, Savings, Cash Wallet, Investments
+  LIABILITY  // Credit Cards, Loans, BNPL
+  INCOME     // Salary, Freelance, Dividends
+  EXPENSE    // External Vendors, General Expenses
+}
+
+enum TransactionStatus {
+  UNREVIEWED  // Imported via n8n / CSV / OCR; pending verification
+  CONFIRMED   // Approved & verified transaction
+  FLAGGED     // Anomaly or missing information
+}
+
+enum SpendingIntent {
+  NEED        // Essential (50% rule)
+  WANT        // Discretionary (30% rule)
+  INVESTMENT  // Savings & Future (20% rule)
+}
+
+enum BillingCycle {
+  ONE_TIME
+  DAILY
+  WEEKLY
+  MONTHLY
+  QUARTERLY
+  YEARLY
+}
+
+// 6. SUBSCRIPTIONS & GENERAL REMINDERS
+model Subscription {
+  id           String       @id @default(cuid())
+  name         String       // Reminder Name / Subscription Title
+  category     String?      @default("General") // General, Personal, Work, Health, Bills, Subscription
+  amount       Decimal      @default(0.0) @db.Decimal(12, 2) // Optional amount (0 for general reminders)
+  cycle        BillingCycle @default(MONTHLY) // ONE_TIME, DAILY, WEEKLY, MONTHLY, QUARTERLY, YEARLY
+  nextBilling  DateTime     // Due date / Remind date
+  notes        String?      // Notes or details
+  trialEnds    DateTime?    // Free trial expiration date
+  logoUrl      String?
+  active       Boolean      @default(true)
+  deletedAt    DateTime?    // Soft-delete timestamp
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+
+  @@index([active, nextBilling])
+  @@index([deletedAt])
+}
+
+enum WishlistStatus {
+  WAITING     // Cooling-off timer active
+  PURCHASED   // Claimed / Bought
+  PASSED      // Impulse buy avoided
+}
+
+// 1. ACCOUNTS TABLE
+model Account {
+  id               String            @id @default(cuid())
+  name             String            @unique
+  type             AccountType       @default(ASSET)
+  currency         String            @default("USD")
+  balance          Decimal           @default(0.0) @db.Decimal(12, 2) // Exact monetary precision
+  color            String?           // Hex badge color
+  logoUrl          String?           // Bank logo URL
+  deletedAt        DateTime?         // Soft-delete timestamp
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+
+  fromTransactions   Transaction[]       @relation("FromAccount")
+  toTransactions     Transaction[]       @relation("ToAccount")
+  amortizedSchedules AmortizedSchedule[] @relation("AmortizedFromAccount")
+
+  @@index([deletedAt])
+}
+
+// 2. CATEGORIES TABLE
+model Category {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  icon      String?  // Lucide icon identifier
+  imageUrl  String?  // Custom category icon URL
+  color     String?  // Hex chart color
+  isIncome  Boolean  @default(false)
+  deletedAt DateTime? // Soft-delete timestamp
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions       Transaction[]
+  budgets            Budget[]
+  rules              Rule[]
+  bills              Bill[]
+  amortizedSchedules AmortizedSchedule[]
+
+  @@index([deletedAt])
+}
+
+// 3. TAGS TABLE
+model Tag {
+  id           String        @id @default(cuid())
+  name         String        @unique
+  transactions Transaction[] @relation("TransactionTags")
+}
+
+// 4. TRANSACTIONS TABLE
+model Transaction {
+  id            String            @id @default(cuid())
+  amount        Decimal           @db.Decimal(12, 2) // Exact financial decimal value
+  description   String
+  rawInput      String?           // Original text input or voice transcript
+  date          DateTime          @default(now())
+  status        TransactionStatus @default(CONFIRMED)
+  intent        SpendingIntent    @default(WANT)
+  notes         String?
+  mood          String?           // e.g., #stressed, #impulsive, #happy
+  isRecurring   Boolean           @default(false)
+  deletedAt     DateTime?         // Soft-delete timestamp
+
+  // Relations
+  categoryId    String?
+  category      Category?         @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+
+  fromAccountId String
+  fromAccount   Account           @relation("FromAccount", fields: [fromAccountId], references: [id], onDelete: Restrict)
+
+  toAccountId   String?
+  toAccount     Account?          @relation("ToAccount", fields: [toAccountId], references: [id], onDelete: Restrict) // Symmetric Restrict protection
+
+  tags          Tag[]             @relation("TransactionTags")
+  attachments   Attachment[]      // Receipts, invoices, screenshots
+
+  createdAt     DateTime          @default(now())
+  updatedAt     DateTime          @updatedAt
+
+  @@index([date(sort: Desc)])
+  @@index([categoryId, date])
+  @@index([fromAccountId, date])
+  @@index([toAccountId, date])
+  @@index([status])
+  @@index([deletedAt])
+}
+
+// 5. RECEIPT & ATTACHMENTS TABLE
+model Attachment {
+  id            String       @id @default(cuid())
+  filename      String
+  fileUrl       String       // Relative or CDN URL (/uploads/receipts/xyz.jpg)
+  mimeType      String       // image/jpeg, image/png, application/pdf
+  size          Int          // Size in bytes
+  ocrText       String?      // Raw OCR transcription text
+  ocrJson       Json?        // Structured OCR data (line items, merchant, tax)
+
+  transactionId String?
+  transaction   Transaction? @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+
+  createdAt     DateTime     @default(now())
+
+  @@index([transactionId])
+}
+
+// 6. SUBSCRIPTIONS & GENERAL REMINDERS (Defined above)
+
+// 7. IMPULSE BUY WISHLIST
+model WishlistItem {
+  id           String         @id @default(cuid())
+  title        String
+  amount       Decimal        @db.Decimal(12, 2)
+  imageUrl     String?
+  itemUrl      String?
+  coolingUntil DateTime       // Countdown lock release date
+  status       WishlistStatus @default(WAITING) // Enum state
+  deletedAt    DateTime?      // Soft-delete timestamp
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+
+  @@index([coolingUntil])
+  @@index([deletedAt])
+}
+
+// 8. MONTHLY BUDGETS
+model Budget {
+  id         String   @id @default(cuid())
+  month      String   // YYYY-MM format
+  amount     Decimal  @db.Decimal(12, 2) // Monthly allocated limit
+  categoryId String   // Non-null category ID (use "Overall" category for total budget)
+  category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  rollover   Boolean  @default(false)
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@unique([month, categoryId])
+  @@index([month])
+}
+
+// 9. AUTO-CATEGORIZATION RULES
+model Rule {
+  id          String   @id @default(cuid())
+  keyword     String   // Substring or regex (e.g. "uber", "starbucks")
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  autoConfirm Boolean  @default(false)
+  priority    Int      @default(0)
+
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([priority(sort: Desc), keyword])
+}
+
+// 10. API KEYS FOR AUTOMATION & N8N
+model ApiKey {
+  id        String    @id @default(cuid())
+  key       String    @unique
+  name      String    // e.g., "n8n Local Docker Workflow"
+  lastUsed  DateTime?
+  createdAt DateTime  @default(now())
+}
+
+// 11. IN-APP NOTIFICATIONS
+model Notification {
+  id        String   @id @default(cuid())
+  type      String   // "transaction" | "budget_alert" | "subscription_due" | "goal_achieved"
+  title     String
+  subtitle  String
+  icon      String   // Lucide icon name string
+  read      Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  @@index([read, createdAt(sort: Desc)])
+}
+
+// 12. BILLS & UTILITIES
+enum BillStatus {
+  DUE
+  PAID
+  OVERDUE
+}
+
+model Bill {
+  id          String     @id @default(cuid())
+  title       String
+  billerName  String?
+  amount      Decimal    @db.Decimal(12, 2)
+  dueDate     DateTime
+  status      BillStatus @default(DUE)
+  categoryId  String?
+  category    Category?  @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  notes       String?
+  receiptUrl  String?
+  paidAt      DateTime?
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+
+  @@index([status, dueDate])
+}
+
+// 13. PREPAID AMORTIZED EXPENSES (e.g., Room Rent / PG Lump Sum)
+model AmortizedSchedule {
+  id             String    @id @default(cuid())
+  title          String    // e.g. "Room Rent / PG Fee"
+  totalAmount    Decimal   @db.Decimal(12, 2) // e.g. 6800.00
+  dailyAmount    Decimal   @db.Decimal(12, 2) // e.g. 219.35
+  remainingAsset Decimal   @db.Decimal(12, 2) // e.g. 6580.65
+  startDate      DateTime  // Start date of coverage period
+  endDate        DateTime  // End date of coverage period
+  lastPostedDate DateTime? // Date of last posted daily expense
+  fromAccountId  String?
+  fromAccount    Account?  @relation("AmortizedFromAccount", fields: [fromAccountId], references: [id], onDelete: SetNull)
+  categoryId     String?
+  category       Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  active         Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([active, startDate, endDate])
+}
+
+
