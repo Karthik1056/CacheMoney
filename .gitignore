@@ -10,3 +10,4 @@ screenshots/
 playwright/
 *.tsbuildinfo
 .env.vercel
+.vercel
